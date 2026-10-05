@@ -5,7 +5,7 @@
 **Hand-drawn sketches and doodles, drawn stroke by stroke in plain JavaScript. Give this repo to your coding agent
 and ask it for a drawing.**
 
-![Twenty plates drawn with this engine](docs/images/gallery.jpg)
+![The plates in this repo](docs/images/gallery.jpg)
 
 Every line here is code: a pencil stroke with wobble, pressure and overshoot; hatching clipped to a shape;
 stipple, watercolour washes, handwriting, cloud ropes, engraved bark, a 3D camera whose shading is done with a pen.
@@ -16,15 +16,22 @@ libraries, no images.
 
 Clone the repo, open your coding agent (Claude Code, Codex, Cursor, …) in it, and ask:
 
-> Draw a lighthouse on a rock in a gale, in ink on kraft paper, with a cutaway of the lamp room.
+> Draw a lighthouse on a rock in a stormy sea, in ink on kraft paper, with a cutaway of the lamp room.
 
-> Make a doodle that grows out of a single eye until the page is full.
+> Make a dense black-and-white ink doodle of an octopus whose tentacles turn into a little city.
 
-> Sketch my bicycle as an exploded technical drawing, blue ballpoint on graph paper.
+> Draw an exploded technical drawing of a vintage typewriter on graph paper, with labelled parts.
 
 The agent reads [`AGENTS.md`](AGENTS.md), which teaches it the API, the paper styles and the rules that make a
 drawing look hand-made. It then writes `scenes/<name>.js` and renders it to see what it drew, fixing the drawing
 until it is right. Claude Code also gets the `doodle` skill in `.claude/skills/`.
+
+The last three plates were made exactly this way: three fresh agents, each given only this repo and one of the
+prompts above, working for 7 to 14 minutes. The typewriter was drawn by a smaller, cheaper model.
+
+| *Lighthouse* | *Octopolis* | *Typewriter (exploded)* |
+|---|---|---|
+| ![](docs/images/lighthouse.jpg) | ![](docs/images/octopolis.jpg) | ![](docs/images/typewriter.jpg) |
 
 Setup:
 
@@ -42,6 +49,7 @@ Open `index.html` in a browser (or `npm run serve`). It is a spiral sketchbook: 
 ```sh
 node tools/render.mjs house                    # renders/house.png
 node tools/render.mjs house --stages 4         # the drawing at four stages of the pen
+node tools/render.mjs house --width 4800 --crop 600,100,1000,350   # a 3x close-up of one box
 node tools/render.mjs house --video            # renders/house.mp4, the pen drawing it (needs ffmpeg)
 node tools/gallery.mjs                         # every plate → docs/images/
 ```
@@ -54,11 +62,12 @@ node tools/gallery.mjs                         # every plate → docs/images/
 | `src/engine3d.js` | A perspective camera with solids (extrusions, cylinders, gears, lathe shapes). Hidden faces are removed, and each face is shaded by pen hatching that follows the light, in a dozen styles (engraving, stipple, contour, spot black, wash and more). |
 | `src/doodle.js` | The doodle kit. 20 motifs and 12 pattern fills, growth by packing or by budding, tendrils, tentacles and spires, and the shading moves that make black-and-white ink read as volume. |
 | `src/kit.js` | A toolbox of noise, colour, Voronoi and jigsaw cells, Poisson packing, contour lines and watercolour with blooms and granulation. |
-| `scenes/` | 20 drawings to learn from, plus two starter templates. |
+| `scenes/` | 23 drawings to learn from, plus two starter templates. |
 
 The plates: *Spaceship · Burj Khalifa · Bridge · Space Elevator · Mechanical Robot · Pyramids · Library Tree ·
 Cathedral · Watch Movement (plan and 3D) · Nave · Camera (exploded) · Rotunda · Doodle · Automatic Doodle · Ink
-Garden · Tea Engine · Clock Island · The House That Draws Itself · Doodle Kit*.
+Garden · Tea Engine · Clock Island · The House That Draws Itself · Doodle Kit · Lighthouse · Octopolis ·
+Typewriter*.
 
 ## Publishing the sketchbook
 

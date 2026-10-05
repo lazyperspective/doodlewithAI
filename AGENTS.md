@@ -10,14 +10,15 @@ here needs a build step or a library; the only dependency is Playwright, for ren
    a paper `theme`, and a one-sentence `note`.
 2. Render it: `node tools/render.mjs <name>` → `renders/<name>.png`. **Open the PNG and look at it.** Every plate in
    `scenes/` was made by doing this many times; a drawing is never right the first time.
-3. Fix what is wrong, render again. For close inspection use `--width 3200` and crop, for the order the pen draws in
-   use `--stages 4`, for the finished video use `--video`.
+3. Fix what is wrong, render again. Close-ups: `--width 4800 --crop x0,y0,x1,y1` (a box in sheet units, here at 3×).
+   The order the pen draws in: `--stages 4`. The finished video: `--video` (needs `ffmpeg`).
 4. When it is good, add `'<name>'` to `scenes/manifest.js` so it appears in the book (`index.html`).
 
-Setup once: `npm install`, then `npx playwright install chromium` (skip if a Chromium is already available: set
-`CHROMIUM_PATH=/path/to/chrome`). `ffmpeg` on the PATH is only needed for `--video`.
+Setup once: `npm install`. The tools use Playwright's Chromium if it is installed, otherwise any Chrome, Chromium or
+Edge on the machine; if they find none they tell you to run `npx playwright install chromium`.
 
-`node tools/render.mjs` exits non-zero and prints the error if the scene throws. Fix errors before judging the picture.
+What `render.mjs` prints is part of the feedback: it exits non-zero with the error if the scene throws, warns about
+letters the alphabet cannot draw, and gives the stroke count, broken down by `P.section` if you use them.
 
 ## A scene file
 
@@ -35,29 +36,41 @@ Setup once: `npm install`, then `npx playwright install chromium` (skip if a Chr
 * `seed` makes the hand repeatable: the same seed gives the same wobble every time. Use `P.r(a, b)` (random in
   [a, b)), `P.ri(a, b)`, `P.pick(arr)`, `P.R()` for every random choice, never `Math.random()`, or the drawing will
   change on every load.
+* **Start each part with `P.section('name')`.** All randomness comes from one stream, so without sections an edit
+  near the top reshuffles everything drawn after it. `P.section('sky')` gives the following strokes their own stream
+  (seeded from the scene seed and the name) and labels them in the stroke counts.
 * Order matters twice: later strokes cover earlier ones, **and** the pen draws them in that order. Build the
   drawing the way an illustrator would: construction lines, big shapes, details, tone, notes.
-* Optional fields: `reveal: true` (render the finished page up front and let the pen uncover it — use it for 3D
-  scenes where hidden strokes would otherwise flash), `P.anims` for parts that keep moving after the pen is done
-  (see *Animation*).
+* Optional fields: `reveal: true` (render the finished page up front and let the pen uncover it), `P.anims` for
+  parts that keep moving after the pen is done (see *Animation*). Use `reveal` whenever layer order and drawing
+  order disagree: when something in front is drawn after what it hides (3D scenes, a head drawn over its tentacles),
+  plain replay would show the hidden strokes for a moment; with `reveal` the pen only uncovers what is visible.
+* `build(P, n, total)`: `n` and `total` are the plate's number and the plate count (both 1 when rendered alone).
 
 ## Paper themes
 
-`theme` is one of these names, or an object overriding any of their fields
-(`{ base, blot, grid, fib, vig, tape, blend, grain }`):
+`theme` is one of these names, or an object whose fields override the `cream` theme (`{ base, blot, grid, fib,
+vig, tape, blend, grain }`). Ballpoint paper with a graph grid, for example: `{ base: '#efe6d0', tape: false, grid: {
+minor: 10, major: 50, mc: 'rgba(60,90,160,0.12)', Mc: 'rgba(60,90,160,0.25)' } }`.
 
-| theme | looks like | good for |
-|---|---|---|
-| `cream` | cream cartridge paper, faint blue grid, tape at the corners | technical sheets, plans |
-| `pencil` | warm off-white, no grid | doodles, pencil studies, ink drawings |
-| `kraft` | brown kraft paper | heavy black ink with white highlights |
-| `mint` | mint graph paper | diagrams, diaries, engineering |
-| `pcb` | pale paper with a fine blue grid | circuit/board-layout looks |
-| `cyan` | cyanotype: white line on Prussian blue (draw with a light ink colour) | blueprints, engraved white-line work |
-| `sepia` | aged sepia paper | architecture, ink and wash |
-| `ink` | white with a fine grey grid | black ink + one accent colour |
-| `archive` | old archive paper | exploded views, catalogues |
-| `bluepen` | yellowed paper for ballpoint | blue biro sketches |
+| theme | base | ink blend | grid | looks like / good for |
+|---|---|---|---|---|
+| `cream` | `#f2ead8` | multiply | faint blue | cream cartridge paper, tape at the corners: technical sheets, plans |
+| `pencil` | `#f3efe2` | multiply | — | warm off-white: doodles, pencil studies, ink drawings |
+| `kraft` | `#b68b56` | normal | — | brown kraft: heavy black ink with white highlights |
+| `mint` | `#edf4f0` | multiply | mint graph | diagrams, diaries, engineering |
+| `pcb` | `#eeefe9` | multiply | fine blue | circuit / board-layout looks |
+| `cyan` | `#e9e3d0` | normal (with a glow) | — | for white-line work on a blue ground *you paint yourself* (see `library.js`) |
+| `sepia` | `#efe3c6` | multiply | — | aged paper: architecture, ink and wash |
+| `ink` | `#f4f0e4` | multiply | fine grey | black ink + one accent colour |
+| `archive` | `#f1e9d2` | multiply | — | old archive paper: exploded views, catalogues |
+| `bluepen` | `#efe6d0` | multiply | — | yellowed paper for blue ballpoint |
+
+**Knock-outs and the ink blend.** The ink is drawn on its own layer and laid on the paper. With `multiply` (most
+themes) white ink is invisible, so to hide what is behind something (`P.occlude`, `D.white`, the 3D `paper`
+option) use **`#ffffff`**: the paper and its grid show through, the strokes behind disappear. With `normal` (`kraft`,
+`cyan`) white is opaque white, so occlude with the theme's base colour instead, and white ink really is white —
+that is how kraft drawings get their gouache highlights.
 
 ## The 2D API (`src/engine.js`, global `Sketch`)
 
@@ -82,32 +95,37 @@ Every method returns the page, so calls chain. Options `o` are all optional. Com
 **Tone**
 | call | draws |
 |---|---|
-| `P.hatch(poly, { ang, gap, cross, fade, piece, w, a })` | parallel strokes clipped to a polygon. `ang` in degrees (default −50), `gap` spacing, `cross: 90` adds a cross-hatch, `fade(x, y) → 0..1` thins it out, `piece` breaks lines into short flicks |
+| `P.hatch(poly, { ang, gap, cross, fade, piece, w, a, inset, jit, ragged, rough })` | parallel strokes clipped to a polygon. `ang` in **degrees** (default −50; everything else in the engine is radians), `gap` spacing, `cross: 90` adds a cross-hatch, `fade(x, y) → 0..1` thins it out, `piece` breaks lines into short flicks (kept or dropped by their midpoint, so they can overrun a mask by up to `piece`), `inset` keeps strokes off the edge, `jit` varies the spacing, `ragged` varies the line ends |
 | `P.stipple(poly, n, { r, a, fade })` | n dots inside a polygon, thinned by `fade(x, y)` |
-| `P.wash(poly, colour, alpha, { grad, edge, jit })` | watercolour/marker fill. `grad: { x0, y0, x1, y1, c0, a0, c1, a1 }` for a linear gradient (add `r0, r1` for radial) |
-| `P.occlude(poly, colour)` | an opaque patch that hides what is under it — draw a background shape, occlude, then draw in front |
-| `P.erase(poly)` | cut back to bare paper |
+| `P.wash(poly, colour, alpha, { grad, edge, jit })` | watercolour/marker fill. **`edge` defaults to 1, a darker pooled rim — pass `edge: 0` for a wash with no outline.** `jit` wobbles the boundary (0 = exact). `grad: { x0, y0, x1, y1, c0, a0, c1, a1 }` for a linear gradient (add `r0, r1` for radial) |
+| `P.occlude(poly, colour)` | an opaque patch that hides what is under it — draw a background shape, occlude, then draw in front (colour: see *Knock-outs*) |
+| `P.backfill(i0, poly, colour)` | an opaque patch *under* the strokes drawn since `i0 = P.ops.length` — for "fill behind what I just drew" (an opaque cloud on kraft) |
+| `P.erase(poly)` | cut the ink layer back to bare paper. Nothing clips strokes to a region: to trim overruns at a picture's border, erase the outside afterwards |
 
 **Lettering** — the engine has its own single-stroke alphabet, so text is drawn by the pen too.
 | call | draws |
 |---|---|
-| `P.text(str, x, y, { size, align, rot, c, a, ls, font })` | architect's capitals (`align: 'left'|'center'|'right'`, `fine: true` for tiny clean lettering) |
-| `P.label(str, x, y, o)` | handwritten lettering |
-| `P.note(str, x, y, tx, ty, o)` | a note with a curved leader line and arrowhead pointing at (tx, ty) |
+| `P.text(str, x, y, { size, align, rot, c, a, ls, lw, fine, halo })` | architect's capitals, **upper case only** (`align: 'left'|'center'|'right'`, `ls` letter spacing, `lw` stroke width, `fine: true` for small clean lettering, `halo: '#1a1410'` draws a wider dark copy under light lettering so it reads on a dark ground) |
+| `P.label(str, x, y, o)` | handwritten lettering (also upper case) |
+| `P.note(str, x, y, tx, ty, { from, c, lc, lw, head, size })` | a note with a curved leader and arrowhead pointing at (tx, ty). The leader starts at the left end of the text unless `from: 'end'` (right end) or `from: 'auto'` (whichever end is nearer the target) — use `auto`, or the leader can cross the words. `lc` leader colour (defaults to `c`), `head` arrowhead size |
 | `P.dim(x1, y1, x2, y2, label, offset, o)` | an architectural dimension line |
 | `P.measure(str, size)` | width of a string, for layout |
+
+The alphabet: `A–Z 0–9 . , : ; - – / \ ( ) ’ " ° + = × % ? ! & < > _ | # *`, plus `— ' ‘ “ ” · …` drawn as their nearest
+cousin. Anything else is drawn as `?` and `render.mjs` warns you. Keep text 6 units or larger; below that it stops
+reading even when zoomed.
 
 **Motifs and furniture**
 | call | draws |
 |---|---|
-| `P.cloud(cx, cy, w, h, { fill, hi, shade })` | a scalloped cumulus with inner lobes and hatched shade |
+| `P.cloud(cx, cy, w, h, { c, w, a, fill, hi, shade, lobes, inner, r, gap, ang })` | a scalloped engraved cumulus with inner lobes and hatched shade; returns its outline (for `backfill`). For a simple round doodle cloud use `D.cloud` |
 | `P.cloudTube(path, r0, r1, o)` | a rope of cloud lobes along a path (smoke, fog, steam) |
 | `P.scallop(pts, { r, closed })` | a bumpy cumulus outline along any line |
 | `P.leaf(x, y, ang, len, w, o)` | a botanical leaf with midrib and veins |
 | `P.strands(pts, h0, h1, n, o)` | engraved grain lines along a path: bark, branches, rope, muscle |
 | `P.bus(pts, n, gap, { colors, pads })` | a bundle of parallel traces with 45° corners (circuit boards, wiring) |
 | `P.ruler(…)`, `P.arcTicks(…)` | tick scales, straight and curved |
-| `P.frame(title, subtitle, n, total, o)` | a drawing-office border and title block |
+| `P.frame(title, subtitle, n, total, { note, scale })` | a drawing-office border with a title block bottom right (x 1150–1562, y 866–962). Keep the title under ~22 characters and the subtitle under ~26, and keep your drawing inside x 50–1550, y 50–860 and clear of the block |
 | `P.xf(scale, cx, cy, tx, ty)` … `P.xfEnd()` | draw a detail scaled around (cx, cy) and moved to (tx, ty) — for insets and magnified details |
 
 `Sketch` also exports `lerp`, `pip(poly, x, y)` (point in polygon), `catmull`, `rng(seed)`, `TAU`.
@@ -127,11 +145,21 @@ D.grow({ inside: mass.inside, bounds: [300, 250, 1300, 750] });            // pa
 * **Motifs** (`D.MOTIFS`): `puff ripple eye pod cells shell honey bands mushroom rosette scales maze curl coral fern
   window night drips stack cell`. Each knocks out its own ground, so motifs can overlap dark areas.
 * **Fills** (`D.FILLS`) for any shape: `echo stipple bubbles night hatch scales rays eye maze cells scribble puff`.
-* **Growth**: `D.grow({ inside, dark, bounds, schedule, big, small })` packs a region (Ink Garden);
-  `D.bud({ seed: [x, y, r], bounds, fills, tentacles })` buds shapes off a seed until the page is full (Automatic
-  Doodle). Both return a packer whose `free(x, y, r)` tells you where there is still room.
+* **Growth**: `D.grow({ inside, dark, bounds, schedule, big, small, fit, packer, haze })` packs a region (Ink Garden).
+  `inside(x, y, pad)` must say whether the point is inside your shape by at least `pad`; `pad` is `0.35·r`, so big
+  motifs spill a little over the rim (organic) — pass **`fit: true`** to keep every motif wholly inside. Pass your
+  own `packer` (`D.packer()`, with circles already `add`ed) to keep areas clear, e.g. the eyes of a face. `haze:
+  false` turns off the stipple dust it adds between motifs. `D.bud({ seed: [x, y, r], bounds, fills, tentacles,
+  inside })` buds shapes off a seed until the region is full (Automatic Doodle). Both return a packer whose `free(x,
+  y, r)` tells you where there is still room.
+* **Along a path you choose**: `D.along(pts, step)` → evenly spaced stations `{ x, y, s, t, tx, ty, nx, ny }` (arc
+  length, 0–1 position, tangent, normal) to place things along a curve; `D.band(pts, w0, w1 | w(t))` → a tapered band
+  `{ poly, L, R, st }` with its two edges, for tentacles, roads, rivers, ribbons; `D.tentacle(…, { path })` follows
+  your centreline instead of wandering.
 * **Things that wander**: `D.wander(x, y, angle, length, { stop })` → points; `D.tendril(points, kind 0–4)`,
   `D.tentacle(x, y, angle, length, width)`, `D.spire(x, y, height)`.
+* **Clouds**: `D.cloud(x, baseY, width, height)` — a white doodled cumulus of round puffs on a flat base (also the
+  `cloud` motif). `D.lump` makes rocks and foliage, not clouds.
 * **Shading moves**: `D.puffShade`, `D.fringe` (strokes combed in from the rim on the shadow side), `D.lump` (a shaded
   white lump: rocks, foliage, crowds), `D.scribble(poly, n)` (looping graphite tone), `D.dotRing`, `D.black`,
   `D.white`, `D.hatch`.
@@ -160,12 +188,32 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
 * Solids: `extrude(pts, z0, z1)`, `cylinder(cx, cy, r, z0, z1, seg)`, `ringSolid(…)`, `gearMesh(cx, cy, r, teeth,
   z0, z1)`, `bodyOfBar(a, b, w0, w1, z0, z1)`, `revolve(cx, cy, [[r, z], …])` (lathe), `poly3(verts, insidePoint)`.
   Move them with `place(faces, { rz, t: [dx, dy, dz] })` or `shift(faces, dx, dy, dz)`.
-* Per-face fields: `c` (a colour wash), `tone` (force a darkness 0–1), `ghost` (outline only), `noHatch`, `layer`.
-* Render options: `light`, `ink`, `paper` (occlusion colour — match your theme), `rich: true` (layered engraving),
-  `style: 'stipple' | 'contour' | 'crosscontour' | 'engrave' | 'flick' | 'spot' | 'wash' | 'brushed' | 'scribble' |
-  'mixed'` (with `rich`), `fog: [near, far]`, `gap`, `hatchMin`, `w`.
-* Also: `polyline3`, `dashed3`, `label3(P, text, point, cam, dx, dy)`, `helix`, `knurl`, `onFloor(point, lightDir)` for
-  cast shadows.
+* **A face** is `{ v: [[x, y, z], …], n: [nx, ny, nz], hard: [bool per edge] }` — vertices counter-clockwise seen
+  from outside, the outward normal, and which edges get inked. `all: true` inks every edge; `poly3(verts, inside)`
+  builds one for you with the normal pointing away from `inside`. Optional: `c` (a colour wash), `ca` (its opacity),
+  `tone` (force a darkness 0–1), `ghost` (outline only, never hidden), `double` (visible from both sides), `noHatch`,
+  `noEdge`, `hdir` (a 3D direction the hatching should follow), `layer` (draw order group, default 2), `bias`, `deco:
+  (P, cam, poly2d) => …` (draw extra detail on the face after it is shaded).
+* **Custom items in the depth sort**: `{ custom: (P, cam) => { … }, c: [x, y, z], bias }` — a function drawn at the
+  depth of point `c`, for springs, screws, labels and guide lines that must sit between solids.
+* **Draw order** is back to front by `distance − bias − zw·z` (`zw` defaults to 3.5), so higher parts always draw
+  over lower ones — good for exploded views. A positive `bias` brings an item forward, a large one (1e6) puts it
+  on top.
+* Solid options: `extrude(pts, z0, z1, { top, bottom, crease, bottomEdge, topColor, sideColor, ghost })` (`top:
+  false` leaves it open, `crease` is the angle in radians above which an edge between sides is inked);
+  `ringSolid(cx, cy, r0, r1, z0, z1, seg, { a0, a1, openInner })` for partial rings; `revolve(cx, cy, prof, { seg,
+  a0, a1, tube, darkBore })` for lathe shapes and cut-aways; `helix(cx, cy, r, z0, z1, turns)` → points for springs.
+* Render options: `light`, `ink`, `paper` (occlusion colour — see *Knock-outs*), `ambient` (0.2), `hatchMin` (faces
+  lighter than this get no hatching), `gap`, `w`, `rough`, `rich: true` (layered engraving), `style: 'stipple' |
+  'contour' | 'crosscontour' | 'engrave' | 'flick' | 'spot' | 'wash' | 'brushed' | 'scribble' | 'mixed'` (with
+  `rich`), `fog: [near, far]`, `zw`, `shadowSide`.
+* Also: `polyline3`, `dashed3`, `label3(P, text, point, cam, dx, dy)`, `knurl`, `onFloor(point, lightDir, z)` for cast
+  shadows. Faces with a vertex behind the camera are skipped silently — if a part vanishes, move the camera back.
+
+**Exploded views** (see `scenes/typewriter.js`, `scenes/camera3d.js`): explode along one axis and keep a low camera
+pitch; the gap between layers must be larger than the layer's depth × tan(pitch), or upper parts hide lower ones. Or
+offset layers sideways. Draw dashed assembly lines between parts, number every part, and put the callouts in two
+columns at the sheet's sides with leaders, so labels never sit on the drawing.
 
 ## Animation
 
@@ -200,17 +248,25 @@ The pen draws the `t = 0` version; afterwards the player redraws only those stro
 7. **Write on it.** Notes with leader lines, a title, a scale bar, a dimension or two. It is a sketchbook page.
 8. **Overlap honestly.** Draw back to front and `occlude` what is behind before drawing what is in front. In 3D, let
    `D.render` do it.
-9. **Keep the stroke count sane.** 2 000–20 000 strokes is the useful range; `render.mjs` prints the count. Use
-   `P.dots` for many dots, and `fade` on hatching/stipple instead of drawing then hiding.
+9. **Keep the stroke count sane.** 2 000–25 000 strokes is the useful range; `render.mjs` prints the count per
+   `P.section`. Use `P.dots` for many dots, and `fade` on hatching/stipple instead of drawing then hiding.
 10. **Look at every render.** Check: is the subject readable at a glance? Is anything cut off or overlapping? Is the
     tone consistent with the light? Are there accidental hard rectangles or straight edges where there should be
-    none? Then zoom in (`--width 3200`) and check the detail.
+    none (a wash's default edge, an occlude box, a knock-out larger than its shape)? Then zoom in (`--width 4800
+    --crop …`) and check the detail: lettering, small parts, where strokes meet.
 
 ## Recipes from the plates — open these files for patterns
+
+The big plates are dense (50–120 KB, long lines): read them in parts, or search them for the helper you want.
+The three marked compact were each made by an agent from a single prompt with this guide, and are the easiest to
+learn from.
 
 | want | look at |
 |---|---|
 | technical multi-view sheet, title block, insets, schematics | `scenes/spaceship.js`, `scenes/robot.js` |
+| **ink on kraft with white highlights, a storm, a section sheet** (compact, a good first read) | `scenes/lighthouse.js` |
+| **exploded 3D technical drawing with numbered callouts** (compact) | `scenes/typewriter.js` |
+| **a figurative doodle: a creature that turns into a city** (compact) | `scenes/octopolis.js` |
 | worm's-eye perspective, heavy ink on kraft, white highlights | `scenes/burj.js`, `scenes/pyramids.js` |
 | ballpoint sketch, fog as cloud ropes | `scenes/bridge.js` |
 | graph-paper diary with diagrams | `scenes/elevator.js` |

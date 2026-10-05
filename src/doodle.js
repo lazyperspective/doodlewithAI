@@ -7,7 +7,8 @@
    const D = SketchDoodle.kit(P, { ink: '#0b0b0b' });      // P is the Sketch.Page your scene's build(P) receives
    D.motif('eye', 800, 500, 60);                             // one motif
    D.fill('scales', D.blob(400, 300, 80), 400, 300, 80);     // pattern inside any closed shape
-   D.grow({ inside: (x, y, pad) => D.inBlob(x, y, pad) });   // a whole grown doodle
+   const m = D.mass([[600, 500, 160], [800, 450, 180]]);     // a silhouette made of lobes
+   D.grow({ inside: m.inside, bounds: [400, 250, 1000, 700] }); // a whole grown doodle packed into it
 
    Load after engine.js. Pure JavaScript; it only records ops on the page. */
 (function (g) {
@@ -97,17 +98,43 @@
       drips: (x, y, r) => { for (let k = -2; k <= 2; k++) { const dx = x + k * r * 0.34, L = r * R(0.6, 1.5); D.ln(dx, y - r, dx, y - r + L, 0.8); const ty = y - r + L, d = P.sample([[dx, ty - 4], [dx + 3.6, ty + 2], [dx, ty + 7], [dx - 3.6, ty + 2]], true, 1.5); D.white(d); D.ol(d, 0.9); } },
       stack: (x, y, r) => { let yy = y - r; while (yy < y + r) { const rr = R(3, r * 0.3), w = rr * R(1.2, 2); const e = D.circ(x, yy + rr, 1, 16).map(([px, py]) => [x + (px - x) * w, py + (py - yy - rr) * (rr - 1)]); D.white(e); D.ol(e, 1); if (P.R() > 0.5) P.hatch(e, { ang: 0, gap: 1.6, a: 0.8, w: 0.4, c: K }); yy += rr * 2 + 1; } },
       // a blob of any shape filled with one of the FILLS: the Automatic Doodle's cell
+      cloud: (x, y, r) => D.cloud(x, y + r * 0.4, r * 2.2, r * 0.9),
       cell: (x, y, r, fill) => { const pts = D.blob(x, y, r, 9, 0.18); D.white(pts); D.fill(fill || pick(['echo', 'stipple', 'bubbles', 'night', 'hatch', 'scales', 'rays', 'eye', 'maze', 'cells']), pts, x, y, r); D.ol(pts, r > 40 ? 2 : 1.5); if (r > 26 && P.R() > 0.4) D.ol(D.shrink(pts, x, y, 1.1), 0.7); return pts; },
     };
     D.motif = (name, x, y, r, ...a) => (M[name] || M.puff)(x, y, r, ...a);
     D.BIG = ['puff', 'puff', 'eye', 'ripple', 'pod', 'cells', 'shell', 'honey', 'bands', 'mushroom', 'rosette', 'scales', 'maze', 'curl', 'coral', 'fern', 'window', 'night', 'drips', 'stack', 'puff', 'cells'];
     D.SMALL = ['puff', 'ripple', 'cells', 'eye', 'pod', 'bands', 'shell', 'night', 'puff', 'ripple'];
 
+    /* ---------------- along a path you choose ----------------
+       D.along(pts, step) resamples any centreline (a few control points are smoothed first) into evenly spaced stations:
+       { x, y, s (distance from the start), t (0–1), tx, ty (unit tangent), nx, ny (unit normal, to the left) }.
+       Use it to put things along a curve: suckers, windows, rivets, labels, buildings standing on its top edge. */
+    D.along = (pts, step = 6, smooth = true) => { const C = smooth && pts.length < 40 ? P.sample(pts, false, 3) : pts, acc = [0]; for (let i = 1; i < C.length; i++) acc.push(acc[i - 1] + Math.hypot(C[i][0] - C[i - 1][0], C[i][1] - C[i - 1][1])); const L = acc[acc.length - 1], out = []; let j = 0;
+      for (let s = 0; s <= L + 1e-6; s += step) { while (j < C.length - 2 && acc[j + 1] < s) j++; const f = (s - acc[j]) / ((acc[j + 1] - acc[j]) || 1), x = lerp(C[j][0], C[j + 1][0], f), y = lerp(C[j][1], C[j + 1][1], f), dx = C[j + 1][0] - C[j][0], dy = C[j + 1][1] - C[j][1], l = Math.hypot(dx, dy) || 1; out.push({ x, y, s, t: L ? s / L : 0, tx: dx / l, ty: dy / l, nx: -dy / l, ny: dx / l }); }
+      return out; };
+    // a tapered band along a chosen path: { poly, L (left edge), R (right edge), st (stations) }; w(t) or w0 → w1
+    D.band = (pts, w0, w1 = w0, step = 6) => { const st = D.along(pts, step), wf = typeof w0 === 'function' ? w0 : t => lerp(w0, w1, t), L = st.map(q => [q.x + q.nx * wf(q.t), q.y + q.ny * wf(q.t)]), Rr = st.map(q => [q.x - q.nx * wf(q.t), q.y - q.ny * wf(q.t)]); return { poly: L.concat(Rr.slice().reverse()), L, R: Rr, st }; };
+    /* a doodled cloud: round puffs on a flat base, white, inked, with a little shade under each puff */
+    D.cloud = (x, y, w, h = w * 0.45, o2 = {}) => { const n = o2.puffs ?? Math.max(3, Math.round(w / (h * 0.62))), puffs = [];
+      for (let i = 0; i < n; i++) { const u = n === 1 ? 0.5 : i / (n - 1), r = h * (0.38 + 0.42 * Math.sin(Math.PI * (0.1 + 0.8 * u))) * R(0.88, 1.08), x0 = x - w / 2 + r, x1 = x + w / 2 - r; puffs.push([lerp(x0, x1, u), y - r * 0.55, r]); }
+      const inOther = (px, py, k) => puffs.some(([qx, qy, qr], m) => m !== k && Math.hypot(px - qx, py - qy) < qr - 0.1);
+      // knock out the paper: each puff above the base line
+      puffs.forEach(([px, py, r]) => D.white(D.circ(px, py, r, 40).map(([qx, qy]) => [qx, Math.min(qy, y)])));
+      // the outline: only the arcs of each puff that are not inside another puff and above the base
+      puffs.forEach(([px, py, r], k) => { let run = []; const flush = () => { if (run.length > 2) P.path(run, { w: o2.w ?? 1.3, c: K, passes: 1, rough: 0.2 }); run = []; };
+        for (let q = 0; q <= 240; q++) { const a = Math.PI - 1.2 + q / 240 * (Math.PI + 2.4), qx = px + Math.cos(a) * r, qy = py + Math.sin(a) * r; if (qy > y || inOther(qx, qy, k)) flush(); else run.push([qx, qy]); } flush();
+        // a little shade: a short inner arc on the side away from the light (lower right)
+        if (o2.shade !== false && r > 8) P.arc(px, py, r * 0.7, r * 0.7, -0.25, 0.6, { w: 0.6, c: K, passes: 1, rough: 0.15, a: 0.7 }); });
+      const xl = puffs[0][0] - Math.sqrt(Math.max(0, puffs[0][2] ** 2 - (y - puffs[0][1]) ** 2)), xr = puffs[n - 1][0] + Math.sqrt(Math.max(0, puffs[n - 1][2] ** 2 - (y - puffs[n - 1][1]) ** 2));
+      P.line(xl, y, xr, y, { w: o2.w ?? 1.3, c: K, passes: 1, over: 0, rough: 0.3 });
+      return puffs; };
+
     /* ---------------- things that wander: tentacles, tendrils, spires ---------------- */
     // a wandering path from (x, y): returns its points; stop(x, y) ends it early
     D.wander = (x, y, a, len, o2 = {}) => { const pts = [[x, y]], step = o2.step ?? 6; let curl = o2.curl ?? R(-0.06, 0.06); for (let s = 0; s < len; s += step) { a += curl + R(-(o2.jit ?? 0.05), o2.jit ?? 0.05); curl *= o2.grow ?? 1.03; x += Math.cos(a) * step; y += Math.sin(a) * step; if (o2.stop && o2.stop(x, y)) break; pts.push([x, y]); } return pts; };
     // a tapered, banded tentacle (white ribbon, ink rim, every other band filled)
-    D.tentacle = (x0, y0, ang, len, w0, o2 = {}) => { const C = D.wander(x0, y0, ang, len, Object.assign({ step: 8, curl: R(-0.09, 0.09), grow: 1.04 }, o2)); if (C.length < 5) return null; const rb = D.ribbon(C, w0 + 1, 1), Lf = rb.L, Rg = rb.R; D.white(rb.poly); D.ol(rb.poly, 1.4); const dark = o2.dark ?? P.R() > 0.5; for (let i = 1; i < C.length - 1; i += 2) { D.ln(Lf[i][0], Lf[i][1], Rg[i][0], Rg[i][1], 0.8); if (dark && i % 4 === 1 && i + 2 < C.length) D.black([Lf[i], Lf[i + 1], Rg[i + 1], Rg[i]]); } P.dot(C[C.length - 1][0], C[C.length - 1][1], 1.8, { c: K }); return C; };
+    // o2.path: give the centreline yourself (a few control points) instead of letting it wander
+    D.tentacle = (x0, y0, ang, len, w0, o2 = {}) => { const C = o2.path ? D.along(o2.path, 8).map(q => [q.x, q.y]) : D.wander(x0, y0, ang, len, Object.assign({ step: 8, curl: R(-0.09, 0.09), grow: 1.04 }, o2)); if (C.length < 5) return null; const rb = D.ribbon(C, w0 + 1, 1), Lf = rb.L, Rg = rb.R; D.white(rb.poly); D.ol(rb.poly, 1.4); const dark = o2.dark ?? P.R() > 0.5; for (let i = 1; i < C.length - 1; i += 2) { D.ln(Lf[i][0], Lf[i][1], Rg[i][0], Rg[i][1], 0.8); if (dark && i % 4 === 1 && i + 2 < C.length) D.black([Lf[i], Lf[i + 1], Rg[i + 1], Rg[i]]); } P.dot(C[C.length - 1][0], C[C.length - 1][1], 1.8, { c: K }); return C; };
     // five kinds of tendril along a path: 0 plain with a drop, 1 bead chain, 2 striped feeler, 3 double line ending in an eye, 4 barbed
     D.tendril = (pts, kind = 0) => { if (pts.length < 3) return; const end = pts[pts.length - 1];
       if (kind === 0) { P.path(pts, { w: 1, c: K, rough: 0.2, passes: 1 }); const d = P.sample([[end[0], end[1] - 4], [end[0] + 4, end[1] + 2], [end[0], end[1] + 8], [end[0] - 4, end[1] + 2]], true, 1.5); D.white(d); D.ol(d, 1); }
@@ -141,10 +168,13 @@
        opts: inside(x, y, pad) → true inside the mass; bounds; dark(x, y) → true in solid-black zones (draw them first with D.black);
              schedule [[r, tries], …]; big / small motif lists; edge(x, y) → 0–1 closeness to the rim, for tendrils; haze (stipple) */
     D.grow = (opts = {}) => { const B = opts.bounds || [80, 70, 1520, 930], pk = opts.packer || D.packer(), inside = opts.inside || (() => true), dark = opts.dark || (() => false), big = opts.big || D.BIG, small = opts.small || D.SMALL;
+      // inside(x, y, pad): by default pad = 0.35·r, so big motifs may spill a little over the rim (organic). fit: true asks
+      // inside(x, y, 1.1·r) instead, so every motif stays wholly inside the shape.
+      const pad = r => opts.fit ? r * 1.1 : r * 0.35;
       (opts.schedule || [[58, 80], [46, 200], [36, 400], [28, 700], [21, 1100], [16, 1700], [12, 2600], [9, 3600], [6, 5000], [4, 6000], [2.6, 7000]]).forEach(([r0, tries]) => {
-        for (let i = 0; i < tries * 14; i++) { const r = r0 * R(0.8, 1.2), x = R(B[0], B[2]), y = R(B[1], B[3]); if (!inside(x, y, r * 0.35) || !pk.free(x, y, r)) continue; pk.add(x, y, r);
+        for (let i = 0; i < tries * 14; i++) { const r = r0 * R(0.8, 1.2), x = R(B[0], B[2]), y = R(B[1], B[3]); if (!inside(x, y, pad(r)) || !pk.free(x, y, r)) continue; pk.add(x, y, r);
           if (r0 <= 6 || (r0 <= 9 && P.R() > 0.6)) { if (dark(x, y)) { if (P.R() > 0.4) P.dot(x, y, r * 0.45, { c: Wh, a: 1 }); else { D.white(D.circ(x, y, r, 10)); P.circle(x, y, r, { w: 0.8, c: K, passes: 1 }); P.dot(x, y, r * 0.3, { c: K }); } } else { if (P.R() > 0.5) P.circle(x, y, r, { w: 0.8, c: K, passes: 1 }); else P.dot(x, y, r * 0.5, { c: K }); } continue; }
-          let kind = r0 >= 12 ? pick(big) : pick(small); for (let t = 0; t < 8 && dark(x, y) && ['drips', 'night', 'fern', 'coral'].includes(kind); t++) kind = pick(big); D.motif(kind, x, y, r); if (r > 24 && P.R() > 0.55) D.ol(D.circ(x, y, r * 1.08, 24), 0.5); } });
+          let kind = r0 >= 12 ? pick(big) : pick(small); for (let t = 0; t < 8 && dark(x, y) && ['drips', 'night', 'fern', 'coral'].includes(kind); t++) kind = pick(big); D.motif(kind, x, y, r); if (r > 24 && !opts.fit && P.R() > 0.55) D.ol(D.circ(x, y, r * 1.08, 24), 0.5); } });
       if (opts.haze !== false) { const d2 = [], w2 = []; for (let i = 0; i < 26000 && d2.length < 5200; i++) { const x = R(B[0] - 10, B[2] + 10), y = R(B[1] - 10, B[3] + 10); if (!inside(x, y, -6) || !pk.free(x, y, 0.6, 0.3)) continue; (dark(x, y) ? w2 : d2).push([x, y, R(0.35, 0.9)]); } P.dots(d2, K, 0.85); P.dots(w2, Wh, 1); }
       return pk; };
 

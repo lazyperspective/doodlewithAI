@@ -92,7 +92,7 @@
     def('7', .54, '0,1 .54,1 .2,0');
     def('8', .54, '~.27,.54 .07,.66 .05,.86 .27,1 .49,.86 .47,.66 .27,.54 .03,.4 .01,.14 .27,0 .53,.14 .51,.4 .27,.54');
     def('9', .54, '~.06,.04 .26,0 .46,.16 .54,.5 .48,.86 .28,1 .08,.92 0,.7 .08,.5 .28,.44 .48,.56');
-    def('.', .12, '.06,.01 .06,.05');
+    def('.', .16, '.08,0 .08,.1');
     def(',', .14, '.08,.08 .03,-.14');
     def(':', .12, '.06,.01 .06,.05', '.06,.5 .06,.54');
     def(';', .14, '.08,.08 .03,-.14', '.08,.5 .08,.54');
@@ -121,17 +121,25 @@
     def('*', .4, '.2,.9 .2,.5', '.02,.8 .38,.6', '.02,.6 .38,.8');
     def('=', .46, '0,.36 .46,.36', '0,.62 .46,.62');
     G['?'].fallback = true;
+    // characters the alphabet draws as their nearest cousin
+    [['—', '–'], ['−', '-'], ["'", '’'], ['‘', '’'], ['“', '"'], ['”', '"'], ['·', '.'], ['…', '.']].forEach(([a, b]) => { G[a] = G[b]; });
   })();
 
   class Page {
     constructor(seed, o = {}) {
-      this.R = rng(seed);
+      this.seed = seed; this.R = rng(seed); this.sections = [];
       this.ops = [];
       this.ink = o.ink || '#2b2b30';
       this.w = 1.3;
       this.a = 0.92;
       this.tab = Array.from({ length: 256 }, () => this.R() * 2 - 1);
       this.W = W; this.H = H;
+    }
+    /* start a section with its own random stream, so editing one part of a drawing does not reshuffle the parts after it.
+       The name also labels the strokes that follow, for the per-section stroke counts tools/render.mjs prints. */
+    section(name) {
+      let h = 2166136261; for (const ch of String(name)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+      this.R = rng((this.seed ^ h) | 0); this.sections.push({ name: String(name), at: this.ops.length }); return this;
     }
     r(a = 1, b) { return b === undefined ? this.R() * a : a + this.R() * (b - a); }
     ri(a, b) { return Math.floor(this.r(a, b + 1)); }
@@ -321,14 +329,19 @@
       return Math.max(0, u - 0.26) * capH;
     }
     text(str, x, y, o = {}) {
+      // halo: draw the same letters again underneath, wider and in the halo colour, so light lettering reads on dark ground
+      if (o.halo) { const i0 = this.ops.length; this.text(str, x, y, Object.assign({}, o, { halo: null })); const top = this.ops.slice(i0), w = o.haloW ?? 2.2;
+        const under = top.map(op => op.k === 's' ? Object.assign({}, op, { c: o.halo, a: Math.min(1, (op.a || 1) * 1.1), p: op.p.map(q => [q[0], q[1], q[2] * w]) }) : null).filter(Boolean);
+        this.ops.splice(i0, 0, ...under); return this; }
       const size = o.size ?? 18, capH = size * 0.62, hand = o.font === HAND;
       const slant = o.slant ?? (hand ? 0.03 : 0.17), ls = (o.ls ?? 0) / capH;
       const s = String(str).toUpperCase(), rot = o.rot || 0, cr = Math.cos(rot), sr = Math.sin(rot);
       const tw = this.measure(s, size, o), ax = o.align === 'center' ? -tw / 2 : o.align === 'right' ? -tw : 0;
-      const fine = !!o.fine, lw = o.lw ?? (fine ? size * 0.055 : Math.max(0.85, size * (hand ? 0.058 : 0.052))), col = o.c || this.ink, al = o.a ?? 0.88, ro = fine ? 0.02 : 0.3;
+      const fine = !!o.fine, lw = o.lw ?? (fine ? Math.max(0.55, size * 0.055) : Math.max(0.85, size * (hand ? 0.058 : 0.052))), col = o.c || this.ink, al = o.a ?? 0.88, ro = fine ? 0.02 : 0.3;
       let u = 0;
       for (const ch of s) {
         if (ch === ' ') { u += 0.5; continue; }
+        if (!G[ch]) (this.missing || (this.missing = new Set())).add(ch);
         const g = G[ch] || G['?'], sx = this.r(0.95, 1.06), sy = this.r(0.95, 1.05), dy = this.r(-0.045, 0.045) * capH, tilt = this.r(-0.05, 0.05);
         for (const st of g.s) {
           const pts = st.p.map(([gx, gy]) => {
@@ -351,11 +364,12 @@
       const size = o.size ?? 19, w = this.measure(s, size), al = o.align || 'left';
       this.text(s, x, y, Object.assign({ size, align: al }, o));
       const ex = al === 'left' ? x - 6 : al === 'right' ? x + 6 : x;
-      const sx = o.from === 'end' ? (al === 'left' ? x + w : x) : ex;
+      const tl = al === 'left' ? x : al === 'right' ? x - w : x - w / 2, fromEnd = o.from === 'end' || (o.from === 'auto' && Math.abs(tx - (tl + w)) < Math.abs(tx - tl)), sx = fromEnd ? (al === 'left' ? x + w + 6 : al === 'right' ? x + 6 : x + w / 2 + 6) : ex;
       const sy = y - size * 0.3;
-      this.curve([[sx, sy], [lerp(sx, tx, 0.5) + this.r(-6, 6), lerp(sy, ty, 0.5) + this.r(-6, 6)], [tx, ty]], { w: 0.7, a: 0.6, rough: 0.6 });
+      const lc = o.lc || o.c, lw = o.lw ?? 0.7;
+      this.curve([[sx, sy], [lerp(sx, tx, 0.5) + this.r(-6, 6), lerp(sy, ty, 0.5) + this.r(-6, 6)], [tx, ty]], { w: lw, a: 0.6, rough: 0.6, c: lc });
       const an = Math.atan2(ty - sy, tx - sx);
-      for (const s2 of [-1, 1]) this.line(tx, ty, tx - Math.cos(an + s2 * 0.4) * 7, ty - Math.sin(an + s2 * 0.4) * 7, { w: 0.8, a: 0.7, passes: 1, over: 0, rough: 0.2 });
+      const hd = o.head ?? 7; for (const s2 of [-1, 1]) this.line(tx, ty, tx - Math.cos(an + s2 * 0.4) * hd, ty - Math.sin(an + s2 * 0.4) * hd, { c: lc, w: lw + 0.1, a: 0.7, passes: 1, over: 0, rough: 0.2 });
       return this;
     }
     /* architectural dimension line, offset `off` px perpendicular to a→b */
@@ -499,6 +513,9 @@
       return this;
     }
     /* opaque patch that hides what is behind it (erase() would show the bare paper on cyanotype) */
+    /* fill under strokes already drawn: put an opaque patch beneath everything drawn since ops index i0
+       (const i0 = P.ops.length; …draw a cloud…; P.backfill(i0, outline, paperColour)) */
+    backfill(i0, poly, color) { const n = this.ops.length; this.occlude(poly, color); const op = this.ops.pop(); this.ops.splice(Math.max(0, Math.min(i0, n)), 0, op); return this; }
     occlude(poly, color) { return this.push({ k: 'f', poly, c: color, a: 1, g: null, edge: 0, steps: 1 }); }
 
     /* ---------- sheet furniture ---------- */

@@ -21,5 +21,8 @@ window.SCENE_FILES = [
   'clockisland',
   'house',
   'doodle-kit',
+  'lighthouse',
+  'octopolis',
+  'typewriter',
   // '_template', '_template-3d'   <- the starting points for new drawings (render them directly)
 ];

@@ -1,5 +1,6 @@
 /* A new 3D drawing: solids are built as faces, then render() draws them through a camera with hidden surfaces removed
-   and every face hatched by how much light it gets. Copy to scenes/<name>.js and add the name to scenes/manifest.js. */
+   and every face hatched by how much light it gets. Copy to scenes/<name>.js, render it with node tools/render.mjs <name>,
+   and add the name to scenes/manifest.js once it is good. */
 (window.SCENES = window.SCENES || []).push({
   name: 'My 3D Drawing', seed: 7, ink: '#15151a', theme: 'ink',
   note: 'A tower of blocks and a wheel, drawn in true perspective and hatched by the light.',

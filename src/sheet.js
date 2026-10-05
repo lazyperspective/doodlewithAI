@@ -355,7 +355,7 @@
       at(frac) { const p = playerFor(cur); p.i = 0; p.j = 0; p.credit = 0; p.reset(); p.ensure(); if (frac >= 1) p.finish(); else p.advance(p.total * frac); return p.done; },
       step(units) { const p = playerFor(cur); p.ensure(); p.advance(units); return p.done; },
       clock(t) { renderT = t; const p = playerFor(cur); p.t0 = 0; if (p.done && (p.anims.length || p.scene.takeover)) p.animate(t * 1000); },
-      stats() { const p = playerFor(cur); return { name: p.scene.name, ops: p.ops.length, total: p.total, done: p.done }; } };
+      stats() { const p = playerFor(cur), sec = p.page.sections || [], n = p.ops.length; return { name: p.scene.name, ops: n, total: p.total, done: p.done, missing: [...(p.page.missing || [])].join(''), sections: sec.map((q, i) => ({ name: q.name, ops: (i + 1 < sec.length ? sec[i + 1].at : n) - q.at })), before: sec.length ? sec[0].at : n }; } };
   }
 
   const fontsReady = document.fonts && document.fonts.load

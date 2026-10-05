@@ -1,7 +1,8 @@
-/* A new drawing. Copy this file to scenes/<your-name>.js, add '<your-name>' to scenes/manifest.js, then:
+/* A new drawing. Copy this file to scenes/<your-name>.js, then:
      node tools/render.mjs <your-name>            → renders/<your-name>.png   (look at it, fix it, render again)
      node tools/render.mjs <your-name> --stages 4 → how the pen builds it up
    The sheet is 1600 x 1000 units; (0, 0) is the top left. Everything is drawn through P, a Sketch.Page.
+   When it is good, add '<your-name>' to scenes/manifest.js so the book shows it.
    Read AGENTS.md for the API, the styles and the rules that make a drawing look hand-made. */
 (window.SCENES = window.SCENES || []).push({
   name: 'My Drawing',           // shown in the book and the viewer
