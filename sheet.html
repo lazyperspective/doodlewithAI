@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Doodle with Agents — sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main id="desk">
+  <div id="stage">
+    <canvas id="paper"></canvas>
+    <canvas id="ink"></canvas>
+    <div id="grain"></div>
+  </div>
+</main>
+<nav id="bar">
+  <button id="prev" title="Previous sheet (←)">‹</button>
+  <div id="tabs"></div>
+  <button id="next" title="Next sheet (→)">›</button>
+  <span class="sep"></span>
+  <button id="speed" title="Drawing speed">1×</button>
+  <button id="redraw" title="Redraw this sheet (R)">↻ redraw</button>
+  <button id="finish" title="Finish drawing (Space)">✎ finish</button>
+</nav>
+<script src="src/engine.js"></script>
+<script src="src/engine3d.js"></script>
+<script src="src/kit.js"></script>
+<script src="src/doodle.js"></script>
+<script src="scenes/manifest.js"></script>
+<script src="src/load.js" data-viewer="src/sheet.js"></script>
+</body>
+</html>

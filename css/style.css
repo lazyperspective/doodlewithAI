@@ -1,0 +1,18 @@
+:root{--desk:#23211f;--bar:#181715;--paper:#f2ead8;--ink:#e9e1cf;--hi:#e9a23b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--desk);color:var(--ink);font-family:"Architects Daughter","Segoe Print","Bradley Hand","Chalkboard SE",cursive;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 40%,#3a3632 0%,#211f1c 70%,#151412 100%)}
+#desk{position:absolute;inset:0 0 54px 0;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;box-shadow:0 18px 50px rgba(0,0,0,.65),0 2px 6px rgba(0,0,0,.6);transition:opacity .35s ease,transform .35s ease}
+#stage.out{opacity:0;transform:translateY(8px) rotate(-.15deg)}
+#stage canvas,#grain{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+#ink{mix-blend-mode:multiply}
+#grain{pointer-events:none;background-repeat:repeat}
+#bar{position:absolute;left:0;right:0;bottom:0;height:54px;background:var(--bar);border-top:1px solid #000;display:flex;gap:8px;align-items:center;justify-content:center;padding:0 10px;overflow-x:auto;white-space:nowrap}
+#bar button{font:inherit;font-size:15px;color:var(--ink);background:#26241f;border:1px solid #3d3a33;border-radius:6px;padding:6px 12px;cursor:pointer}
+#bar button:hover{border-color:var(--hi);color:#fff}
+#bar button.on{background:var(--hi);border-color:var(--hi);color:#1b1a17}
+#tabs{display:flex;gap:6px}
+.sep{width:1px;height:26px;background:#3d3a33;margin:0 6px}
+@media (max-width:760px){#bar button{padding:6px 8px;font-size:13px}}
+body.render #bar{display:none}body.render #desk{inset:0}body.render #stage{box-shadow:none;transition:none}

@@ -1,0 +1,15 @@
+{
+  "name": "doodle-with-agents",
+  "version": "0.1.0",
+  "description": "Hand-drawn sketches and doodles, drawn stroke by stroke in plain JavaScript. Hand the repo to your coding agent and ask for a drawing.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "render": "node tools/render.mjs",
+    "gallery": "node tools/gallery.mjs",
+    "serve": "npx --yes serve -l 8080 ."
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
