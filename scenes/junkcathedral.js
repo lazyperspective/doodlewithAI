@@ -203,7 +203,7 @@
       for (let y = -700, k = 0; y < 300; y += 16 + k * 2.2, k++) gl(y, -900, 900, 0.5, Math.max(0.15, 0.7 - k * 0.012));
       const contact = (pts, depth) => { for (let i = 0; i + 1 < pts.length; i++) { const a = pts[i], b = pts[i + 1], nx = -(b[1] - a[1]), ny = b[0] - a[0], l = Math.hypot(nx, ny) || 1; const quad = [a, b, [b[0] + nx / l * depth, b[1] + ny / l * depth], [a[0] + nx / l * depth, a[1] + ny / l * depth]].map(p => CAM.project([p[0], p[1], 0])).filter(Boolean).map(q => [q[0], q[1]]); if (quad.length < 4) continue; const e0 = quad[0], e1 = quad[1]; P.hatch(quad, { ang: 5, gap: 1.6, c: K, a: 0.8, w: 0.5, inset: 0, fade: (x, y) => Math.max(0, 1 - Math.abs(y - (e0[1] + e1[1]) / 2) / 9) }); P.stipple(quad, 160, { a: 0.9, r: 0.5, c: K }); } };
       contact([[TX0 - 18, TY0 - 18], [TX1 + 18, TY0 - 18]], -16); contact([[TX0 - 18, TY1 + 18], [TX0 - 18, TY0 - 18]], -16); contact([[110, -400], [400, -400]], -14); contact(Array.from({ length: 16 }, (_, k) => { const a = Math.PI * 0.6 + k * Math.PI * 1.2 / 15; return [-440 + Math.cos(a) * 44, -30 + Math.sin(a) * 44]; }), -18); }
-    // Peter-style cloud banks in the empty sky (drawn before the buildings so they sit behind)
+    // cumulus cloud banks in the empty sky (drawn before the buildings so they sit behind)
     cloudBank(50, 610, 230, 50); cloudBank(90, 380, 150, 30); 
 
     /* ================= THE TEA: a teapot on a lattice crane pours into a giant cup ================= */

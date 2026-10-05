@@ -278,7 +278,7 @@
     'Rotunda (cutaway)': 'A domed rotunda cut open to show its structure.',
     'Doodle': 'An abstract doodle in every shading technique at once.',
     'Automatic Doodle': 'A doodle that grows itself, shape by shape.',
-    'Ink Garden': 'A random abstract mass in the manner of Peter Draws.',
+    'Ink Garden': 'A random abstract ink mass, grown motif by motif until the page is full.',
     'Tea Engine': 'A Gothic tower crowned with machinery, all for one cup of tea.',
     'The House That Draws Itself': 'A self-portrait: a house of rooms with one lit window, built on everything people wrote down, still being drawn by its own hand.',
     'Clock Island': 'Floating rocks, a clock-lighthouse and a time engine. It keeps moving once drawn.'

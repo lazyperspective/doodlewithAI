@@ -34,7 +34,7 @@
     /* ---------- blood-red accent: red strokes laid into the shadow sides for depth ---------- */
     const RED = '#6e0a0c', LGT = V.norm([-0.3, -0.75, 0.55]);
     const redShade = (fs, k = 1, o = {}) => (Array.isArray(fs) ? fs : [fs]).forEach(f => { if (!f.v) return; const lam = V.dot(f.n, LGT); if (lam > (o.max ?? 0.3) && !o.all) return; const old = f.deco; f.deco = (PP, cm, poly) => { if (old) old(PP, cm, poly); let x0 = 1e9, x1 = -1e9; poly.forEach(p => { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); }); PP.hatch(poly, { ang: o.ang ?? 34, gap: o.gap ?? 3, c: RED, a: 0.7 * k, w: o.w ?? 0.6, piece: 6, inset: 1.5, fade: (x) => Math.min(1, k * (o.all ? 0.8 : (0.45 - lam) * 1.5) * (o.grad ? 0.2 + (x - x0) / (x1 - x0 + 1) : 1)) }); }; });
-    /* ---------- Peter-style 2D marks, studied from the originals ---------- */
+    /* ---------- hand-inked 2D marks ---------- */
     // fringe shading: rows of short strokes perpendicular to the outline, massed on the shadow side
     const fringe = (pts, cx, cy, r, o = {}) => { const rows = o.rows ?? 3, dens = o.every ?? 1; for (let i = 0; i < pts.length; i += dens) { const [x, y] = pts[i], a = Math.atan2(y - cy, x - cx), sh = -Math.cos(a - (o.light ?? -2.4)); if (sh < -0.05) continue; for (let m = 0; m < rows; m++) { const s0 = 1 + m * r * 0.09, L = r * (0.1 + 0.16 * sh) * (1 - m * 0.25); if (L < 1) continue; P.line(x - Math.cos(a) * s0, y - Math.sin(a) * s0, x - Math.cos(a) * (s0 + L), y - Math.sin(a) * (s0 + L), { w: 0.45, c: o.c ?? K, passes: 1, over: 0, rough: 0.1 }); } } };
     const lump = (cx, cy, r, o = {}) => { const k = 12, pts = P.sample(Array.from({ length: k }, (_, i) => { const a = i * TAU / k; return [cx + Math.cos(a) * r * R(0.8, 1.15), cy + Math.sin(a) * r * (o.sq ?? 0.85) * R(0.8, 1.12)]; }), true, 2); white(pts); fringe(pts, cx, cy, r, Object.assign({}, o, { c: o.red ? RED : K })); P.stipple(pts, Math.round(r * r * 0.18), { a: 0.9, r: 0.6, c: K, fade: (x, y) => Math.max(0, ((x - cx) * 0.7 + (y - cy)) / (r * 1.2)) }); polyL(pts, o.w ?? 1.5); if (o.double) polyL(pts.map(([x, y]) => [cx + (x - cx) * 0.86, cy + (y - cy) * 0.86]), 0.5); return pts; };
@@ -42,7 +42,7 @@
     const cloudCluster = (x, y, z, n, rMax, bias) => custom([x, y, z], (PP, cm) => { const c = cm.project([x, y, z]); if (!c) return; for (let q = 0; q < n; q++) lump(c[0] + R(-rMax * 1.6, rMax * 1.6), c[1] + R(-rMax * 1.1, rMax * 1.1) - q * 1.4, R(rMax * 0.45, rMax), { rows: 3 }); }, bias);
     const banded = (A, B, r, bands, o = {}) => { pipe(A, B, r, { seg: 18, flanges: bands }); custom([(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2], (PP, cm) => { bands.forEach(t2 => { const p = [lerp(A[0], B[0], t2), lerp(A[1], B[1], t2), lerp(A[2], B[2], t2)], d = V.norm(V.sub(B, A)), u = V.norm(V.cross(d, [0, 0, 1])), w = V.cross(u, d); for (let k = 0; k < 10; k++) { const a = Math.PI * 0.6 + k * 0.28, q = V.add(p, V.add(V.mul(u, Math.cos(a) * r * 1.36), V.mul(w, Math.sin(a) * r * 1.36))), s = cm.project(q); if (s) PP.dot(s[0], s[1], 1, { c: K }); } }); }, 6); };
 
-    /* ---------- Peter-style cloud banks (2D, drawn first so the structures sit over them) ---------- */
+    /* ---------- cumulus cloud banks (2D, drawn first so the structures sit over them) ---------- */
     const cloudBank = (x0, y0, w, h) => { const n = Math.round(w / 16); for (let row = 0; row < 3; row++) for (let k = 0; k < n; k++) { const t2 = (k + R(-0.3, 0.3)) / (n - 1), bell = Math.sin(Math.PI * Math.min(1, Math.max(0, t2))), r = (8 + 22 * bell) * (1 - row * 0.22) * R(0.8, 1.15), x = x0 + t2 * w, y = y0 - bell * h * (1 - row * 0.4) + row * 18 + r * 0.3; if (bell < 0.15 && row === 0) continue; lump(x, Math.min(y, y0 - r * 0.5 + row * 18), r, { rows: 3, double: r > 20 }); } const base = [[x0 - 6, y0 + 40], [x0 + w + 6, y0 + 40]]; P.line(base[0][0], base[0][1], base[1][0], base[1][1], { w: 1.2, c: K, passes: 1, over: 0 }); for (let k = 1; k < 5; k++) { const a = R(0.05, 0.3), b2 = R(0.6, 0.95); P.line(x0 + w * a, y0 + 40 + k * 5, x0 + w * b2, y0 + 40 + k * 5, { w: 0.5, c: K, passes: 1, over: 0 }); } };
     cloudBank(70, 860, 300, 70);  cloudBank(1100, 150, 200, 40); cloudBank(400, 300, 150, 30);
     for (let i = 0; i < 70; i++) { const x = R(40, 1560), y = R(40, 940); if (x > 480 && x < 1120) continue; if (P.R() < 0.7) lump(x, y, R(2.5, 7), { rows: 2, w: 1 }); else { P.circle(x, y, R(2, 5), { w: 0.8, c: K, passes: 1 }); } }
@@ -182,7 +182,7 @@
       const O = [0, 0, 520], phi = -1.2 + tt * 0.45, toCam = V.norm([CAM.eye[0], CAM.eye[1], 0]), dir = [Math.cos(phi), Math.sin(phi), 0], f = V.dot(dir, toCam); if (f < -0.35) return; const vis = Math.min(1, (f + 0.35) * 2.2);
       for (let k = 0; k <= 12; k++) { const ang = phi + (k / 12 - 0.5) * 0.24, zz = 520 + (k / 12 - 0.5) * 50; let prev = null; for (let sgm = 0; sgm <= 16; sgm++) { const rr = 62 + sgm * 70, q = CAM.project([Math.cos(ang) * rr, Math.sin(ang) * rr, zz + sgm * 4]); if (!q) break; if (prev && (sgm + k) % 2 === 0) P.line(prev[0], prev[1], q[0], q[1], { w: k % 6 === 0 ? 0.8 : 0.45, c: k % 4 === 1 ? RED : K, a: vis * 0.5 * (1 - sgm / 17), passes: 1, over: 0, rough: 0.1 }); prev = q; } } }, { fps: 30 });
 
-    /* ================= THE UNDERWORLD hanging beneath each rock (2D, Peter-style) ================= */
+    /* ================= THE UNDERWORLD hanging beneath each rock (2D, hand-inked) ================= */
     const EYES = [];
     const underworld = (pts, z, maxD, o = {}) => {
       const rim = pts.map(([x, y]) => CAM.project([x, y, z])).filter(Boolean).map(q => [q[0], q[1]]);
@@ -196,7 +196,7 @@
       const mass = topC.concat(botC.slice().reverse());
       black(mass);
       const bb = { x0: minX, x1: maxX, y0: Math.min(...topC.map(p => p[1])), y1: Math.max(...botC.map(p => p[1])) };
-      // a band of lumps crowding the seam under the rock (Peter's "cauliflower" rim)
+      // a band of lumps crowding the seam under the rock (a "cauliflower" rim)
       const placed = [];
       topC.forEach(([x, y], i) => { if (i % 2) return; const r = R(5, 11) * (o.s ?? 1); if (!S.pip(mass, x, y + r + 4)) return; placed.push([x, y + r + 2, r]); lump(x, y + r + 2, r, { rows: 2, w: 1.1 }); });
       // white veins with ball-and-stick branches
