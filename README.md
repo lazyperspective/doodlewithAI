@@ -1,4 +1,6 @@
-# Doodle with Agents
+<p align="center"><img src="docs/icon/icon-rounded.png" width="160" alt="Doodle with Agents"></p>
+
+<h1 align="center">Doodle with Agents</h1>
 
 **Hand-drawn sketches and doodles, drawn stroke by stroke in plain JavaScript. Give this repo to your coding agent
 and ask it for a drawing.**
@@ -61,6 +63,11 @@ Garden · Tea Engine · Clock Island · The House That Draws Itself · Doodle Ki
 ## Publishing the sketchbook
 
 It is a static site. GitHub Pages, Vercel or any file host can serve the repo root as it is.
+
+## Icon
+
+`docs/icon/` has the icon (1024, 512, 256, rounded and square), a favicon and `social-card.png`. Upload the card in
+the repo's Settings → Social preview. The icon was drawn with the engine itself: `docs/icon/icon-scene.js`.
 
 ## Licence
 

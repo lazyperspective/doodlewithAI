@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Render every drawing in scenes/manifest.js to docs/images/<name>.jpg (and a contact sheet, docs/images/gallery.jpg).
    node tools/gallery.mjs [--width 1200] */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'), args = process.argv.slice(2), wi = args.indexOf('--width'), width = wi >= 0 ? +args[wi + 1] : 1200;
 const names = [...readFileSync(resolve(root, 'scenes/manifest.js'), 'utf8').replace(/\/\/.*$/gm, '').matchAll(/'([\w-]+)'/g)].map(m => m[1]);
 const out = resolve(root, 'docs/images'); mkdirSync(out, { recursive: true });
-const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: width / 1600 });
 for (const n of names) {
   await page.goto(pathToFileURL(resolve(root, 'sheet.html')).href + '?render&scene=' + n);

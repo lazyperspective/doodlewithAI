@@ -11,7 +11,7 @@
      --time <s>         for drawings with animated parts: the clock for those parts (default 0)
 
    Needs Playwright: npm install (then, once, npx playwright install chromium). Uses no server: the pages open from disk. */
-import { chromium } from 'playwright';
+import { launch } from './browser.mjs';
 import { mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -26,7 +26,7 @@ const sceneArg = scene.endsWith('.js') ? pathToFileURL(resolve(scene)).href : sc
 const width = +opt('width', 1600), scale = width / 1600, video = !!opt('video', false);
 const out = resolve(opt('out', `renders/${name}${video ? '.mp4' : '.png'}`)); mkdirSync(dirname(out), { recursive: true });
 
-const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: scale });
 const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text()); });
 await page.goto(pathToFileURL(resolve(root, 'sheet.html')).href + '?render&scene=' + encodeURIComponent(sceneArg));
