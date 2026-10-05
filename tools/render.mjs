@@ -57,5 +57,5 @@ await browser.close();
 console.log(`${stats.name}: ${stats.ops} strokes → ${out}`);
 if (stats.sections && stats.sections.length) { if (stats.before) console.log(`  ${String(stats.before).padStart(7)}  (before the first P.section)`); for (const s2 of stats.sections) console.log(`  ${String(s2.ops).padStart(7)}  ${s2.name}`); }
 if (stats.missing) console.log(`  note: the alphabet has no ${JSON.stringify(stats.missing)}; those letters were drawn as "?"`);
-if (stats.ops > 30000) console.log('  note: over 30 000 strokes; the pen will take a while and the page will be slow to replay. Use P.dots and fade instead of many single marks.');
+if (stats.ops > 30000) console.log(`  note: over ${stats.ops > 60000 ? '60 000' : '30 000'} strokes; the pen will take a while and the page will be slow to replay. Use P.dots and fade instead of many single marks.${stats.ops > 60000 ? '' : ' (Fine for the dense ink style, which goes up to 60 000.)'}`);
 if (errors.length) { console.log('errors in the page:\n  ' + errors.join('\n  ')); process.exit(3); }

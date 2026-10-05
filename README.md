@@ -48,13 +48,17 @@ one ridiculous idea fills the whole page:
 
 > Draw a giant snail carrying a whole Victorian town on its shell, in the Tea Engine style.
 
-> In the Tea Engine style: a lighthouse that has grown a factory on top, and all it makes is one paper boat.
+> In the Tea Engine style: a whale that has a whole factory built on its back, and all the factory makes is one paper boat.
 
 > A Clock Island style drawing of a library floating on a jellyfish, with the books leaking out of the bottom.
 
+![The Whale Works](docs/images/whaleworks.jpg)
+
+*The Whale Works* was drawn by a fresh agent in 21 minutes from the second prompt above.
+
 For this style the agent follows the *dense ink style* recipe in `AGENTS.md`. It builds the masses in 3D, inks
 detail onto every face, piles up machinery and fills the page with small things around the main subject. The best
-prompts give it **one weird idea and one joke**. These drawings take longer, often 20 to 40 minutes.
+prompts give it **one weird idea and one joke**. These drawings take longer, 20 to 30 minutes.
 
 Other styles to ask for by name: *Lighthouse* (ink on kraft with white highlights), *Typewriter* or *Camera*
 (exploded technical drawing), *Cathedral* (sepia section with wash), *Library Tree* (white lines on cyanotype
@@ -82,12 +86,12 @@ node tools/gallery.mjs                         # every plate → docs/images/
 | `src/engine3d.js` | A perspective camera with solids (extrusions, cylinders, gears, lathe shapes). Hidden faces are removed, and each face is shaded by pen hatching that follows the light, in a dozen styles (engraving, stipple, contour, spot black, wash and more). |
 | `src/doodle.js` | The doodle kit. 20 motifs and 12 pattern fills, growth by packing or by budding, tendrils, tentacles and spires, and the shading moves that make black-and-white ink read as volume. |
 | `src/kit.js` | A toolbox of noise, colour, Voronoi and jigsaw cells, Poisson packing, contour lines and watercolour with blooms and granulation. |
-| `scenes/` | 23 drawings to learn from, plus two starter templates. |
+| `scenes/` | 24 drawings to learn from, plus two starter templates. |
 
 The plates: *Spaceship · Burj Khalifa · Bridge · Space Elevator · Mechanical Robot · Pyramids · Library Tree ·
 Cathedral · Watch Movement (plan and 3D) · Nave · Camera (exploded) · Rotunda · Doodle · Automatic Doodle · Ink
 Garden · Tea Engine · Clock Island · The House That Draws Itself · Doodle Kit · Lighthouse · Octopolis ·
-Typewriter*.
+Typewriter · The Whale Works*.
 
 ## Publishing the sketchbook
 

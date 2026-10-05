@@ -106,7 +106,7 @@ Every method returns the page, so calls chain. Options `o` are all optional. Com
 | call | draws |
 |---|---|
 | `P.text(str, x, y, { size, align, rot, c, a, ls, lw, fine, halo })` | architect's capitals, **upper case only** (`align: 'left'|'center'|'right'`, `ls` letter spacing, `lw` stroke width, `fine: true` for small clean lettering, `halo: '#1a1410'` draws a wider dark copy under light lettering so it reads on a dark ground) |
-| `P.label(str, x, y, o)` | handwritten lettering (also upper case) |
+| `P.label(str, x, y, o)` | handwritten lettering (also upper case); the same as `P.text(str, x, y, { font: Sketch.HAND })` |
 | `P.note(str, x, y, tx, ty, { from, c, lc, lw, head, size })` | a note with a curved leader and arrowhead pointing at (tx, ty). The leader starts at the left end of the text unless `from: 'end'` (right end) or `from: 'auto'` (whichever end is nearer the target) — use `auto`, or the leader can cross the words. `lc` leader colour (defaults to `c`), `head` arrowhead size |
 | `P.dim(x1, y1, x2, y2, label, offset, o)` | an architectural dimension line |
 | `P.measure(str, size)` | width of a string, for layout |
@@ -186,7 +186,7 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
 ```
 
 * Solids: `extrude(pts, z0, z1)`, `cylinder(cx, cy, r, z0, z1, seg)`, `ringSolid(…)`, `gearMesh(cx, cy, r, teeth,
-  z0, z1)`, `bodyOfBar(a, b, w0, w1, z0, z1)`, `revolve(cx, cy, [[r, z], …])` (lathe), `poly3(verts, insidePoint)`.
+  z0, z1)`, `bodyOfBar(a, b, w0, w1, z0, z1)`, `revolve(cx, cy, [[r, z], …])` (lathe), `poly3(verts, toward)`.
 * **Organic solids**: `tube(path3, r | r(t, i), { seg, caps, squash: [sx, sy], hdir: 'along' })` lofts rings along
   any 3D path: bodies, necks, tentacles, bent pipes, horns, and a snail shell (a path on a logarithmic spiral with
   `r = t => r0 * Math.exp(k * t)`). `sphere(cx, cy, cz, r, { sz })` is a ball, or an egg with `sz`. These have no
@@ -194,8 +194,9 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
   away is then inked, which outlines smooth lathes, cylinders, tubes and spheres.
   Move them with `place(faces, { rz, t: [dx, dy, dz] })` or `shift(faces, dx, dy, dz)`.
 * **A face** is `{ v: [[x, y, z], …], n: [nx, ny, nz], hard: [bool per edge] }` — vertices counter-clockwise seen
-  from outside, the outward normal, and which edges get inked. `all: true` inks every edge; `poly3(verts, inside)`
-  builds one for you with the normal pointing away from `inside`. Optional: `c` (a colour wash), `ca` (its opacity),
+  from outside, the outward normal, and which edges get inked. `all: true` inks every edge; `poly3(verts, toward)`
+  builds one for you with the normal pointing **toward** the point `toward`, so pass a point outside the solid, in
+  front of the face. Optional: `c` (a colour wash), `ca` (its opacity),
   `tone` (force a darkness 0–1), `ghost` (outline only, never hidden), `double` (visible from both sides), `noHatch`,
   `noEdge`, `hdir` (a 3D direction the hatching should follow), `layer` (draw order group, default 2), `bias`, `deco:
   (P, cam, poly2d, face) => …` (draw extra detail on the face after it is shaded). **Read the corners from the
@@ -222,6 +223,14 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
   open a section such as `P.section('3d')` just before it. Any `P.r`/`P.R` call inside a `deco` or `custom`
   function takes numbers from the page's one random stream, so changing one shifts the randomness of everything drawn
   after it; that is normal, and the drawing stays the same from run to run.
+* A `deco` draws during its face's turn in the depth sort, so faces drawn later cover it: keep a deco inside its
+  face. Detail that must cross many small faces (spots across a tube, a stripe round a body) goes in a `custom` item
+  with a small `bias`, or on a few large faces.
+* `tone: 0–1` fixes a face's darkness whatever the light, and `noHatch: true` leaves it white. Use them to keep a soft
+  body or a big plane (a sea, a floor) from going patchy.
+* **A waterline or ground under a 3D object**: keep the object's vertices at z ≥ 0 (clamp them) and drop the faces
+  that end up flat on z = 0; draw the water or ground as large faces in `layer: 1`, so they are drawn before
+  everything in the default layer 2. Large faces sort badly against small ones by distance alone, and layers fix it.
 
 **Exploded views** (see `scenes/typewriter.js`, `scenes/camera3d.js`): explode along one axis and keep a low camera
 pitch; the gap between layers must be larger than the layer's depth × tan(pitch), or upper parts hide lower ones. Or
@@ -272,7 +281,8 @@ The pen draws the `t = 0` version; afterwards the player redraws only those stro
 
 When someone asks for **"the Tea Engine style"**, "the Clock Island style", "dense ink", or a drawing that is weird,
 detailed, packed and shaded all over, they mean the look of `scenes/junkcathedral.js` and `scenes/clockisland.js`.
-It bends some of the rules above, so follow this recipe instead where they differ.
+It bends some of the rules above, so follow this recipe instead where they differ. `scenes/whaleworks.js` was made by an agent
+from this recipe and one prompt; read it alongside the two plates.
 
 * **One absurd idea, told straight.** An ordinary thing pushed until it is ridiculous: a cathedral crowned by a heap
   of machinery whose only job is one cup of tea; islands that float on tangled roots. Draw it as seriously as an
@@ -307,7 +317,9 @@ It bends some of the rules above, so follow this recipe instead where they diffe
 * **Values to start from.** The Tea Engine renders its 3D with `{ ink: '#0c0c0c', paper: '#ffffff', light: [-0.2,
   -0.8, 0.45], ambient: 0.04, w: 1.4, rough: 0.3, zw: 0, hatchMin: 0.06, rich: true, darken: 1.5, gap: 3.4, style:
   'mixed', silhouette: true }` (*mixed*: near-black faces become a solid black wash, the others dense hatching with a
-  little stipple). Clock Island uses `style: 'layered'`, `darken: 1.6`, `gap: 3.2`. Start from one of these and move
+  little stipple). Clock Island uses `style: 'layered'`, `darken: 1.6`, `gap: 3.2`. With *mixed* and `darken: 1.5`, any face
+  turned more than about 70° from the light becomes solid black and lit tops are hatched heavily; use `tone` on the
+  faces you want lighter. Start from one of these and move
   the light, not the other numbers: a light from the front and above gives white faces towards the viewer and black
   sides, which is what this style wants.
 * **Creatures and soft things** are `D.tube` and `D.sphere` (a snail's body and shell, a whale, a tentacle, a
@@ -315,7 +327,8 @@ It bends some of the rules above, so follow this recipe instead where they diffe
 * **Pen order.** The 3D renderer draws back to front, not in an illustrator's order, and that is fine for this style.
   But draw spot blacks *with* the part they belong to (in its `deco`), not as one big shape at the start, or the
   replay opens with a black blob.
-* **Budget.** These plates are 40 000–55 000 strokes; that is the one place to go past the usual limit. Use `P.dots`
+* **Budget.** These plates are 40 000–55 000 strokes; that is the one place to go past the usual limit, so ignore
+  the render tool's 30 000-stroke note, and keep under 60 000. Use `P.dots`
   for dots, and spend the strokes on the centre.
 
 Work in this order, rendering after each step: the 3D masses with plain shading; the deco on every face; the spot
