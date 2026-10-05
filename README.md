@@ -42,25 +42,25 @@ npx playwright install chromium      # the agent renders with this to see its dr
 
 ## Ask for a style
 
-Name a plate and the agent works in that plate's style. The richest is the dense, slightly mad ink
-style of *Tea Engine* and *Clock Island*. Every surface is inked, there are big black shapes and white puffs, and
-one ridiculous idea fills the whole page:
+The richest style here has a name you can ask for: **dense ink**. It is the look of *Tea Engine*, *Clock Island*
+and *The Whale Works*: every surface is inked, there are big black shapes and white puffs, and one ridiculous idea
+fills the whole page. Add **"in dense ink"** to your prompt:
 
-> Draw a giant snail carrying a whole Victorian town on its shell, in the Tea Engine style.
+> Draw a giant snail carrying a whole Victorian town on its shell, in dense ink.
 
-> In the Tea Engine style: a whale that has a whole factory built on its back, and all the factory makes is one paper boat.
+> In dense ink: a whale that has a whole factory built on its back, and all the factory makes is one paper boat.
 
-> A Clock Island style drawing of a library floating on a jellyfish, with the books leaking out of the bottom.
+> A dense ink drawing of a library floating on a jellyfish, with the books leaking out of the bottom.
 
 ![The Whale Works](docs/images/whaleworks.jpg)
 
 *The Whale Works* was drawn by a fresh agent in 21 minutes from the second prompt above.
 
-For this style the agent follows the *dense ink style* recipe in `AGENTS.md`. It builds the masses in 3D, inks
+For this style the agent follows the *dense ink* recipe in `AGENTS.md`. It builds the masses in 3D, inks
 detail onto every face, piles up machinery and fills the page with small things around the main subject. The best
 prompts give it **one weird idea and one joke**. These drawings take longer, 20 to 30 minutes.
 
-Other styles to ask for by name: *Lighthouse* (ink on kraft with white highlights), *Typewriter* or *Camera*
+You can also name any plate and the agent works in its style: *Lighthouse* (ink on kraft with white highlights), *Typewriter* or *Camera*
 (exploded technical drawing), *Cathedral* (sepia section with wash), *Library Tree* (white lines on cyanotype
 blue), *Bridge* (ballpoint), *Space Elevator* (graph-paper diary), *Ink Garden* (grown black-and-white doodle).
 

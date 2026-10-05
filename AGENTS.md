@@ -277,10 +277,10 @@ The pen draws the `t = 0` version; afterwards the player redraws only those stro
     none (a wash's default edge, an occlude box, a knock-out larger than its shape)? Then zoom in (`--width 4800
     --crop …`) and check the detail: lettering, small parts, where strokes meet.
 
-## The dense ink style (*Tea Engine*, *Clock Island*)
+## Dense ink (the style of *Tea Engine*, *Clock Island*, *The Whale Works*)
 
-When someone asks for **"the Tea Engine style"**, "the Clock Island style", "dense ink", or a drawing that is weird,
-detailed, packed and shaded all over, they mean the look of `scenes/junkcathedral.js` and `scenes/clockisland.js`.
+When someone asks for **"dense ink"** (or "in dense ink", "dense ink style"), names one of those plates, or asks for a
+drawing that is weird, detailed, packed and shaded all over, they mean the look of `scenes/junkcathedral.js` and `scenes/clockisland.js`.
 It bends some of the rules above, so follow this recipe instead where they differ. `scenes/whaleworks.js` was made by an agent
 from this recipe and one prompt; read it alongside the two plates.
 
@@ -356,7 +356,7 @@ learn from.
 | cinematic 3D interior with light shafts and fog | `scenes/nave3d.js`, `scenes/rotunda3d.js` |
 | abstract 3D ink sculpture | `scenes/doodle3d.js` |
 | grown doodles | `scenes/automatic.js`, `scenes/inkgarden.js`, `scenes/doodle-kit.js` |
-| **the dense ink style**: a weird story, 3D masses covered in hand-inked detail (see the section above) | `scenes/junkcathedral.js`, `scenes/clockisland.js` |
+| **dense ink**: a weird story, 3D masses covered in hand-inked detail (see the section above) | `scenes/junkcathedral.js`, `scenes/clockisland.js` |
 | a whole illustrated world with animated parts | `scenes/house.js` |
 
 ## Files
