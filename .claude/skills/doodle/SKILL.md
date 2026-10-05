@@ -10,6 +10,7 @@ look hand-made. Then follow this loop and do not skip the looking.
 
 0. **If the user asks for "dense ink"** (or the style of Tea Engine, Clock Island or The Whale Works), or a weird,
    dense, shaded-all-over ink drawing, read the *Dense ink* section of `AGENTS.md` and follow its recipe and its order of work.
+   For **"engraving"** or a print-like night scene, read the *Shading* section and start from `scenes/observatory.js`.
 1. **Pick the closest plate** in the recipes table of `AGENTS.md` and read its scene file for the patterns it uses
    (the compact ones, `lighthouse.js`, `typewriter.js`, `octopolis.js`, are the quickest to learn from).
 2. **Start the drawing**: copy `scenes/_template.js` (or `scenes/_template-3d.js`, or `scenes/doodle-kit.js` for a
