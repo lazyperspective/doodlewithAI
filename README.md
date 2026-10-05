@@ -64,6 +64,48 @@ You can also name any plate and the agent works in its style: *Lighthouse* (ink 
 (exploded technical drawing), *Cathedral* (sepia section with wash), *Library Tree* (white lines on cyanotype
 blue), *Bridge* (ballpoint), *Space Elevator* (graph-paper diary), *Ink Garden* (grown black-and-white doodle).
 
+## What's new: a better pen
+
+The engine has been sharpened so every drawing looks more hand-made, and it can do a few new things. The before and
+after images are 3× close-ups of the same drawings, same layout, drawn with the old and the new engine.
+
+**Hatching that meets.** 3D faces hatch on a shared grid, so the lines on neighbouring faces of a curved surface run
+on as one stroke instead of breaking at every edge.
+
+![Hatching before and after](docs/images/before-after/tower.jpg)
+
+**Stipple without clumps.** Dots keep a little apart, the way a stippler places them, and the gradient stays.
+
+![Stipple before and after](docs/images/before-after/stipple.jpg)
+
+**Pen strokes with round, inked ends.** Every stroke now starts and ends in a slightly darker round blob, where the
+ink pools as the pen lands and lifts, and the nib is a touch wider across than along. Long lines skip now and then,
+like a drying pen.
+
+![Strokes before and after](docs/images/before-after/strokes.jpg)
+
+**Riso printing.** Render any drawing in two inks, slightly out of register: `node tools/render.mjs junkcathedral
+--theme riso`.
+
+![The Tea Engine as a riso print](docs/images/before-after/riso.jpg)
+
+**New tools**, all in [`AGENTS.md`](AGENTS.md) (`node tools/render.mjs _features` draws this sheet):
+
+![New tools](docs/images/before-after/new-tools.jpg)
+
+* `P.flow(shape, { field })`: hatching that follows the form (rings, along the edge, radial or any direction field).
+* `P.clip(shape, () => { … })`: anything drawn inside is clipped to a shape.
+* Lettering in lower case (`{ case: 'mixed' }`), with kerning and more symbols (º @ $ [ ]).
+* Fills `bricks`, `slate`, `rivets`, `grain`, `flow`; motifs `gear`, `chain`, `ivy`, `rope`.
+* Textures `SketchKit.tex.stone / ripples / fur / folds`.
+* Contact shadows in 3D (`D.render(…, { contactShadow: 6 })`): parts darken the parts behind them.
+* `P.live(fn)` and `SketchKit.liveKit.spin / bob / blink / drift` for moving parts in the pen videos.
+* `P.isolate(tag, fn)`: a part with its own randomness, so editing it does not reshuffle the rest of the drawing.
+* Style presets in `Sketch.STYLES` (`dense-ink`, `technical`, `ballpoint`, `kraft`, `riso`).
+* `node tools/export-svg.mjs <scene> [--plotter]`: an SVG of the drawing, or strokes only for a pen plotter.
+* `node tools/critique.mjs renders/<name>.png`: a squint test that flags empty quarters, too much grey, no blacks or
+  no focal point.
+
 ## Look at the drawings
 
 Open `index.html` in a browser (or `npm run serve`). It is a spiral sketchbook: flip through the plates and press
@@ -75,6 +117,9 @@ node tools/render.mjs house                    # renders/house.png
 node tools/render.mjs house --stages 4         # the drawing at four stages of the pen
 node tools/render.mjs house --width 4800 --crop 600,100,1000,350   # a 3x close-up of one box
 node tools/render.mjs house --video            # renders/house.mp4, the pen drawing it (needs ffmpeg)
+node tools/render.mjs house --theme riso       # the same drawing as a two-ink riso print
+node tools/export-svg.mjs house                # renders/house.svg (--plotter: strokes only)
+node tools/critique.mjs renders/house.png      # what looks wrong from across the room
 node tools/gallery.mjs                         # every plate → docs/images/
 ```
 

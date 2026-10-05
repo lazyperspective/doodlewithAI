@@ -9,6 +9,7 @@
      --video            write the pen drawing it as an MP4 (needs ffmpeg on PATH); --seconds <s> (default 12), --fps <n> (default 30)
      --at <0..1>        render the drawing partly done
      --time <s>         for drawings with animated parts: the clock for those parts (default 0)
+     --theme <name>     render on another paper, e.g. --theme riso (two inks, slightly out of register)
      --crop x0,y0,x1,y1 render only this part of the sheet (sheet units, 1600 x 1000), at --width for the whole sheet:
                         --width 4800 --crop 600,300,1000,550 is a 3x close-up of that box
 
@@ -19,7 +20,7 @@ import { resolve, dirname, basename } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const args = process.argv.slice(2), VAL = ['out', 'width', 'stages', 'seconds', 'fps', 'at', 'time', 'crop'], o = {}; let scene = null;
+const args = process.argv.slice(2), VAL = ['out', 'width', 'stages', 'seconds', 'fps', 'at', 'time', 'crop', 'theme'], o = {}; let scene = null;
 for (let i = 0; i < args.length; i++) { const a = args[i]; if (a.startsWith('--')) { const k = a.slice(2); if (VAL.includes(k)) o[k] = args[++i]; else o[k] = true; } else if (!scene) scene = a; }
 const opt = (k, d) => o[k] ?? d;
 if (!scene) { console.log('usage: node tools/render.mjs <scene> [--out file] [--width px] [--stages n] [--video] [--at 0..1] [--time s]'); process.exit(1); }
@@ -31,7 +32,7 @@ const out = resolve(opt('out', `renders/${name}${video ? '.mp4' : '.png'}`)); mk
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: scale });
 const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text()); });
-await page.goto(pathToFileURL(resolve(root, 'sheet.html')).href + '?render&scene=' + encodeURIComponent(sceneArg));
+await page.goto(pathToFileURL(resolve(root, 'sheet.html')).href + '?render&scene=' + encodeURIComponent(sceneArg) + (o.theme ? '&theme=' + encodeURIComponent(o.theme) : ''));
 try { await page.waitForFunction(() => window.__sketch && window.__sketch.player, null, { timeout: 60000 }); }
 catch { console.error('the drawing did not load:\n  ' + (errors.join('\n  ') || 'no error reported')); await browser.close(); process.exit(2); }
 const stats = await page.evaluate(() => window.__sketch.stats());

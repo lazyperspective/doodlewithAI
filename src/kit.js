@@ -124,4 +124,35 @@
     };
     return k;
   };
+
+  /* ---------------- textures: surfaces built from noise and contour lines ---------------- */
+  // each takes the page, a polygon and options; everything is clipped to the polygon
+  const bb = poly => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; poly.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }); return [x0, y0, x1, y1]; };
+  L.tex = {
+    // dry-stone wall: irregular rounded stones in courses, each shaded on its lower right
+    stone(P, poly, o = {}) { const [x0, y0, x1, y1] = bb(poly), h = o.size ?? 16, c = o.c || P.ink, R = (a, b) => P.r(a, b);
+      P.clip(poly, () => { for (let y = y0; y < y1 + h; y += h * R(0.8, 1.1)) { let x = x0 - R(0, h); while (x < x1) { const w = h * R(1.1, 2.2), hh = h * R(0.75, 0.95), cx = x + w / 2, cy = y + hh / 2, pts = [];
+        for (let k = 0; k < 14; k++) { const a = k * TAU / 14, sx = Math.cos(a), sy = Math.sin(a), f = Math.pow(Math.abs(sx) ** 3 + Math.abs(sy) ** 3, -1 / 3) * R(0.92, 1.04); pts.push([cx + sx * f * w * 0.46, cy + sy * f * hh * 0.46]); }
+        P.occlude(pts, o.paper || '#ffffff'); P.path(pts.concat([pts[0]]), { w: 0.9, c, rough: 0.4, passes: 1 }); P.hatch(pts, { ang: -40, gap: 1.8, w: 0.45, a: 0.8, c, fade: (px, py) => Math.max(0, ((px - cx) / w + (py - cy) / hh) * 1.6) }); x += w + R(0.5, 2); } } }); },
+    // water: wavering horizontal ripple lines, closer and shorter toward the bottom, broken where light glints
+    ripples(P, poly, o = {}) { const [x0, y0, x1, y1] = bb(poly), c = o.c || P.ink, R = (a, b) => P.r(a, b);
+      P.clip(poly, () => { for (let y = y0, k = 0; y < y1; k++) { const t = (y - y0) / Math.max(1, y1 - y0), gap = (o.gap ?? 7) * (1.4 - t * 0.9); for (let x = x0 + R(-20, 0); x < x1;) { const L2 = R(8, 40) * (1.3 - t * 0.6), line = []; for (let u = 0; u <= L2; u += 3) line.push([x + u, y + Math.sin((x + u) * 0.09 + k) * 1.3]); P.path(line, { w: 0.6, c, a: 0.85, rough: 0.2, passes: 1 }); x += L2 + R(4, 18) * (1 - t * 0.6); } y += gap; } }); },
+    // fur: short curved strokes along a direction, in overlapping tufts, denser on the shadow side
+    fur(P, poly, o = {}) { const [x0, y0, x1, y1] = bb(poly), c = o.c || P.ink, ang = o.ang ?? Math.PI / 2, len = o.len ?? 9, R = (a, b) => P.r(a, b), n = Math.round((x1 - x0) * (y1 - y0) / (len * len) * (o.density ?? 2.2));
+      P.clip(poly, () => { for (let i = 0; i < n; i++) { const x = R(x0, x1), y = R(y0, y1); if (!S.pip(poly, x, y)) continue; if (o.fade && P.R() > o.fade(x, y)) continue; const a = ang + R(-0.3, 0.3), l = len * R(0.6, 1.2), b = R(-0.4, 0.4); P.curve([[x, y], [x + Math.cos(a + b * 0.5) * l * 0.5, y + Math.sin(a + b * 0.5) * l * 0.5], [x + Math.cos(a + b) * l, y + Math.sin(a + b) * l]], { w: 0.55, c, a: 0.85, rough: 0.1, passes: 1 }); } }); },
+    // cloth: fold lines from pinch points, each fold shaded on one side with short hatching
+    folds(P, poly, o = {}) { const [x0, y0, x1, y1] = bb(poly), c = o.c || P.ink, n = o.count ?? 7, R = (a, b) => P.r(a, b), pin = o.from || [(x0 + x1) / 2, y0];
+      P.clip(poly, () => { for (let k = 0; k < n; k++) { const ex = lerp(x0, x1, (k + 0.5) / n) + R(-10, 10), ey = y1 + 5, mid = [lerp(pin[0], ex, 0.5) + R(-15, 15), lerp(pin[1], ey, 0.5)], line = P.sample([pin, mid, [ex, ey]], false, 4); P.path(line, { w: 0.9, c, rough: 0.3, passes: 1 });
+        const side = line.map(([x, y], i) => [x + 3 + i * 0.25, y]); P.hatch(line.concat(side.slice().reverse()), { ang: -60, gap: 2, w: 0.45, a: 0.75, c }); } }); },
+  };
+
+  /* ---------------- live kit: ready-made moving parts for the pen-drawing videos ---------------- */
+  // draw(P, t) draws the part; these wrap it in P.live with the right motion
+  L.liveKit = {
+    spin: (P, x, y, draw, speed = 0.6) => P.live(Q => draw(Q), { cache: true, fps: 0, xf: t => ({ rot: t * speed, px: x, py: y }) }),
+    bob: (P, draw, amp = 3, speed = 1.3) => P.live(Q => draw(Q), { cache: true, fps: 0, xf: t => ({ y: Math.sin(t * speed * TAU) * amp, x: 0 }) }),
+    drift: (P, draw, o = {}) => P.live((Q, t) => draw(Q, t), { fps: o.fps ?? 12 }),
+    blink: (P, x, y, r, o = {}) => P.live((Q, t) => { const ph = (t * (o.rate ?? 0.25)) % 1, shut = ph > 0.95 ? Math.sin((ph - 0.95) / 0.05 * Math.PI) : 0, h = r * 0.55 * (1 - shut);
+      const al = []; for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; al.push([x + Math.cos(a) * r, y + Math.sin(a) * Math.max(0.3, h)]); } Q.occlude(al, '#ffffff'); Q.path(al.concat([al[0]]), { w: 1, passes: 1, rough: 0.2 }); if (h > r * 0.2) Q.dot(x, y, Math.min(h, r * 0.38)); }, { fps: 20 }),
+  };
 })(window);

@@ -26,10 +26,13 @@
     sepia: { base: '#efe3c6', blot: ['rgba(190,150,90,0.13)', 'rgba(255,250,235,0.22)'], grid: null, fib: ['rgba(110,80,40,0.09)', 'rgba(255,255,255,0.4)'], fibN: 3400, vig: 'rgba(110,80,30,0.32)', tape: false, blend: 'multiply', grain: [250, 240, 216, 58] },
     ink: { base: '#f4f0e4', blot: ['rgba(190,170,120,0.10)', 'rgba(255,255,255,0.22)'], grid: { minor: 10, major: 50, mc: 'rgba(120,120,110,0.05)', Mc: 'rgba(120,120,110,0.10)' }, fib: ['rgba(100,90,60,0.06)', 'rgba(255,255,255,0.4)'], fibN: 2400, vig: 'rgba(100,90,50,0.22)', tape: false, blend: 'multiply', grain: [250, 246, 234, 52] },
     archive: { base: '#f1e9d2', blot: ['rgba(190,160,100,0.10)', 'rgba(255,252,240,0.20)'], grid: null, fib: ['rgba(120,96,60,0.06)', 'rgba(255,255,255,0.35)'], fibN: 3000, vig: 'rgba(130,100,50,0.20)', tape: false, blend: 'multiply', grain: [248, 242, 226, 50] },
+    // riso: off-white stock, heavy grain, two inks; the second ink is printed slightly out of register
+    riso: { base: '#f3eee2', blot: ['rgba(180,170,150,0.08)', 'rgba(255,255,255,0.18)'], grid: null, fib: ['rgba(90,80,60,0.05)', 'rgba(255,255,255,0.3)'], fibN: 1800, vig: 'rgba(60,50,40,0.10)', tape: false, blend: 'multiply', grain: [246, 240, 228, 95], riso: { offset: [2.2, -1.6], inks: ['#1f4fa3', '#f0506e'] } },
     bluepen: { base: '#efe6d0', blot: ['rgba(200,170,110,0.12)', 'rgba(255,255,255,0.14)'], grid: null, fib: ['rgba(120,96,60,0.07)', 'rgba(255,255,255,0.3)'], vig: 'rgba(140,110,50,0.24)', tape: false, blend: 'multiply', grain: [250, 244, 226, 44] },
   };
   let theme = THEMES.cream;
-  function themeFor(scene) { const t = scene && scene.theme; return typeof t === 'string' ? (THEMES[t] || THEMES.cream) : Object.assign({}, THEMES.cream, t || {}); }
+  const THEME_OVR = new URLSearchParams(location.search).get('theme');   // ?theme=riso prints any drawing on that paper
+  function themeFor(scene) { const t = THEME_OVR || (scene && scene.theme); return typeof t === 'string' ? (THEMES[t] || THEMES.cream) : Object.assign({}, THEMES.cream, t || {}); }
 
   function paintPaper() {
     const w = paperC.width, h = paperC.height, R = S.rng(7), th = theme;
@@ -91,11 +94,24 @@
     if (paperC.width) paintPaper();
   }
 
+  /* --------------------------------------------------------------- stroke options */
+  const ENH = Object.assign({ nib: 0.22, caps: true, pool: 0.25 }, window.SKETCH_OPTS || {});
+  // riso: two drums. Everything in the scene's main ink prints in the first ink; every other colour (except white
+  // knock-outs) prints in the second, shifted a little out of register
+  function risoShift(ops, main, [dx, dy], inks) { const m = String(main).toLowerCase(), white = c => /^#f{3}(f{3})?$/i.test(c);
+    for (const op of ops) { if (!op.c || white(op.c)) continue; delete op.fs; delete op.fp;
+      const rgb = S.rgb ? S.rgb(op.c) : null, lum = rgb ? (rgb[0] * 0.3 + rgb[1] * 0.59 + rgb[2] * 0.11) / 255 : 1;
+      const sat = rgb ? Math.max(...rgb) - Math.min(...rgb) : 0;
+      if (String(op.c).toLowerCase() === m || (lum < 0.25 && sat < 40)) { op.c = inks[0]; continue; }   // black and near-black: the first drum
+      op.c = inks[1];
+      switch (op.k) { case 's': case 'D': op.p = op.p.map(q => [q[0] + dx, q[1] + dy, q[2]]); break; case 'f': op.poly = op.poly.map(q => [q[0] + dx, q[1] + dy]); break; case 'd': op.x += dx; op.y += dy; break; } } }
+
   /* --------------------------------------------------------------- player */
   class Player {
     constructor(scene) {
       const P = new S.Page(scene.seed, { ink: scene.ink });
       scene.build(P, scene.index + 1, TOTAL);
+      { const th = themeFor(scene); if (th.riso) risoShift(P.ops, scene.ink || P.ink, th.riso.offset, th.riso.inks); }
       this.page = P; this.ops = P.ops; this.i = 0; this.j = 0; this.credit = 0; this.seed = scene.seed; this.scene = scene;
       // animated groups: op ranges the scene marked as live; after the pen finishes they are redrawn every frame
       this.anims = (P.anims || []).map(a => Object.assign({ st: {} }, a)); this.skip = new Uint8Array(this.ops.length); this.anims.forEach(a => this.skip.fill(1, a.i0, a.i1)); this.base = null; this.t0 = null; this.reveal = !!scene.reveal; this.full = null;
@@ -212,6 +228,7 @@
       }
     }
     draw(op, from, to, c = ictx, rv = null) {
+      if (op.clip) { c.save(); c.beginPath(); const q = op.clip; c.moveTo(q[0][0], q[0][1]); for (let n = 1; n < q.length; n++) c.lineTo(q[n][0], q[n][1]); c.closePath(); c.clip(); try { const cl = op.clip; op.clip = null; this.draw(op, from, to, c, rv); op.clip = cl; } finally { c.restore(); } return; }
       if (op.blend && !rv) { c.save(); c.globalCompositeOperation = op.blend; try { this.drawOp(op, from, to, c, rv); } finally { c.restore(); } return; }
       this.drawOp(op, from, to, c, rv);
     }
@@ -222,16 +239,22 @@
         case 's': {
           const p = op.p, fs = op.fs || (op.fs = S.rgba(op.c, op.a));
           const L = [], Rr = [];
+          const nib = ENH.nib;
           for (let n = from; n <= to; n++) {
             const q = p[n], a = p[Math.max(0, n - 1)], b = p[Math.min(p.length - 1, n + 1)];
             let tx = b[0] - a[0], ty = b[1] - a[1]; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
-            const hw = q[2] * 0.68;
+            // a slightly flat nib held at 40 degrees: strokes across it are a little wider than strokes along it
+            const hw = q[2] * 0.68 * (nib ? 1 + nib * Math.abs(tx * 0.643 - ty * 0.766) - nib * 0.5 : 1);
             L.push(q[0] - ty * hw, q[1] + tx * hw); Rr.push(q[0] + ty * hw, q[1] - tx * hw);
           }
           c.fillStyle = fs; c.beginPath(); c.moveTo(L[0], L[1]);
           for (let n = 2; n < L.length; n += 2) c.lineTo(L[n], L[n + 1]);
           for (let n = Rr.length - 2; n >= 0; n -= 2) c.lineTo(Rr[n], Rr[n + 1]);
           c.closePath(); c.fill();
+          // round ends where the pen lands and lifts, a touch darker: the ink pools while the pen is still
+          if (ENH.caps && to > from) { const pool = ENH.pool; c.fillStyle = op.fp || (op.fp = S.rgba(op.c, Math.min(1, op.a * (1 + pool))));
+            if (from === 0) { const q = p[0]; c.beginPath(); c.arc(q[0], q[1], q[2] * 0.68 * (1 + pool * 0.5), 0, 6.3); c.fill(); }
+            if (to === p.length - 1) { const q = p[to]; c.beginPath(); c.arc(q[0], q[1], q[2] * 0.68 * (1 + pool * 0.5), 0, 6.3); c.fill(); } }
           break;
         }
         case 'f': {

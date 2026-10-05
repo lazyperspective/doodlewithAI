@@ -73,6 +73,12 @@
       cells: (pts, cx, cy, r) => { const s = 9; for (let row = 0, y = cy - r; y < cy + r; y += s * 0.86, row++) for (let x = cx - r + (row % 2) * s / 2; x < cx + r; x += s) if (S.pip(D.shrink(pts, cx, cy, 0.9), x, y)) { const hx = []; for (let k = 0; k < 6; k++) { const a = k * TAU / 6 + Math.PI / 6; hx.push([x + Math.cos(a) * s * 0.5, y + Math.sin(a) * s * 0.5]); } P.poly(hx, { w: 0.6, c: K, passes: 1, over: 0, rough: 0.1 }); if (P.R() > 0.75) D.black(hx); } },
       scribble: pts => D.scribble(pts, 40, { len: 30 }),
       puff: (pts, cx, cy, r) => D.puffShade(pts, cx, cy, r),
+      // new fills: masonry, slate, rivets, wood grain, and hatching that follows the shape
+      bricks: (pts, cx, cy, r) => { const h = Math.max(4, r / 7), w = h * 2.2; P.clip(pts, () => { for (let row = 0, y = cy - r; y < cy + r; y += h, row++) { P.line(cx - r, y, cx + r, y, { w: 0.7, c: K, passes: 1, over: 0, rough: 0.3 }); for (let x = cx - r + (row % 2) * w / 2; x < cx + r; x += w) { P.line(x, y, x, y + h, { w: 0.7, c: K, passes: 1, over: 0, rough: 0.2 }); if (P.R() < 0.35) P.hatch([[x + 1, y + h - 1.5], [x + w - 1, y + h - 1.5], [x + w - 1, y + h * 0.55], [x + 1, y + h * 0.55]], { ang: 0, gap: 1.4, w: 0.45, a: 0.8, c: K }); } } }); },
+      slate: (pts, cx, cy, r) => { const h = Math.max(4, r / 8), w = h * 1.4; P.clip(pts, () => { for (let row = 0, y = cy - r; y < cy + r; y += h, row++) for (let x = cx - r + (row % 2) * w / 2; x < cx + r; x += w) { P.arc(x + w / 2, y, w / 2, h * 0.9, 0.05, Math.PI - 0.05, { w: 0.7, c: K, passes: 1 }); if (P.R() < 0.5) P.line(x + w * 0.2, y + h * 0.5, x + w * 0.8, y + h * 0.5, { w: 0.4, c: K, passes: 1, over: 0, rough: 0.2 }); } }); },
+      rivets: (pts, cx, cy, r) => { const s2 = Math.max(6, r / 5), inner = D.shrink(pts, cx, cy, 0.86), d = [], w2 = []; for (let y = cy - r; y < cy + r; y += s2 * 2.2) for (let x = cx - r; x < cx + r; x += s2) if (S.pip(inner, x, y)) { d.push([x, y, 2.4]); w2.push([x - 0.7, y - 0.7, 0.8]); } P.dots(d, K, 0.95); P.dots(w2, Wh, 1); D.ol(inner, 0.6); },
+      grain: (pts, cx, cy, r) => { const kx = R(-1, 1); P.clip(pts, () => { for (let k = -14; k <= 14; k++) { const line = []; for (let t = -1.1; t <= 1.1; t += 0.05) { const y0 = cy + k * r / 13, x0 = cx + t * r, knot = Math.exp(-((x0 - cx - kx * r * 0.4) ** 2 + (y0 - cy) ** 2) / (r * r * 0.05)); line.push([x0, y0 + Math.sin(t * 3 + k) * 1.2 + knot * r * 0.18 * Math.sign(k || 1)]); } P.path(line, { w: k % 3 ? 0.45 : 0.7, c: K, a: 0.85, rough: 0.2, passes: 1 }); } }); },
+      flow: (pts, cx, cy, r) => P.flow(pts, { gap: Math.max(2.4, r / 14), w: 0.55, c: K, a: 0.9, field: P.R() < 0.5 ? 'contour' : 'along' }),
     };
     D.fill = (name, pts, cx, cy, r) => { (F[name] || F.echo)(pts, cx, cy, r); };
 
@@ -99,11 +105,24 @@
       stack: (x, y, r) => { let yy = y - r; while (yy < y + r) { const rr = R(3, r * 0.3), w = rr * R(1.2, 2); const e = D.circ(x, yy + rr, 1, 16).map(([px, py]) => [x + (px - x) * w, py + (py - yy - rr) * (rr - 1)]); D.white(e); D.ol(e, 1); if (P.R() > 0.5) P.hatch(e, { ang: 0, gap: 1.6, a: 0.8, w: 0.4, c: K }); yy += rr * 2 + 1; } },
       // a blob of any shape filled with one of the FILLS: the Automatic Doodle's cell
       cloud: (x, y, r) => D.cloud(x, y + r * 0.4, r * 2.2, r * 0.9),
+      // new motifs
+      gear: (x, y, r) => { const n = Math.max(8, Math.round(r / 3.5)), out = []; for (let k = 0; k < n * 4; k++) { const a = k * TAU / (n * 4), tooth = (k % 4 === 1 || k % 4 === 2); out.push([x + Math.cos(a) * r * (tooth ? 1 : 0.84), y + Math.sin(a) * r * (tooth ? 1 : 0.84)]); } D.white(out); D.ol(out, 1.3); P.circle(x, y, r * 0.62, { w: 0.8, c: K, passes: 1 }); for (let k = 0; k < 5; k++) { const a = k * TAU / 5 + 0.3, hole = D.circ(x + Math.cos(a) * r * 0.42, y + Math.sin(a) * r * 0.42, r * 0.12, 12); D.black(hole); } const hub = D.circ(x, y, r * 0.18, 14); D.white(hub); D.ol(hub, 1); P.dot(x, y, r * 0.06, { c: K }); P.hatch(out, { ang: -50, gap: 2.2, w: 0.45, a: 0.8, c: K, fade: (px, py) => Math.max(0, ((px - x) * 0.6 + (py - y) * 0.8) / r) }); },
+      chain: (x, y, r) => { const a0 = R(0, TAU), n = 5; for (let k = 0; k < n; k++) { const t = (k - (n - 1) / 2) * r * 0.42, cx = x + Math.cos(a0) * t, cy = y + Math.sin(a0) * t, ell = D.ell(cx, cy, r * 0.28, r * 0.14, 20, a0 + (k % 2 ? Math.PI / 2 * 0.0 : 0)); const link = k % 2 ? D.ell(cx, cy, r * 0.28, r * 0.05, 16, a0) : ell; D.white(link); D.ol(link, 1.2); if (!(k % 2)) D.black(D.ell(cx, cy, r * 0.17, r * 0.05, 14, a0)); } },
+      ivy: (x, y, r) => { const stem = D.wander(x - r, y + R(-r, r) * 0.3, R(-0.3, 0.3), r * 2, { step: 4 }); D.pl(stem, 1); for (let i = 3; i < stem.length; i += 3) { const [sx, sy] = stem[i], a = (i % 6 ? -1 : 1) * 1.1 + R(-0.3, 0.3), lx = sx + Math.cos(a) * r * 0.22, ly = sy + Math.sin(a) * r * 0.22, lf = D.blobR(lx, ly, r * 0.16, r * 0.11, a, 9, 0.12); D.white(lf); D.ol(lf, 0.9); D.ln(sx, sy, lx, ly, 0.6); P.hatch(lf, { ang: a * 57 + 90, gap: 1.6, w: 0.4, a: 0.7, c: K, fade: (px, py) => (px - lx) * Math.cos(a + 1.57) + (py - ly) * Math.sin(a + 1.57) > 0 ? 1 : 0 }); } },
+      rope: (x, y, r) => { const a0 = R(-0.6, 0.6), ca = Math.cos(a0), sa = Math.sin(a0), mid = []; for (let t = -r; t <= r; t += 3) { const b = Math.sin(t / r * 2) * r * 0.12; mid.push([x + ca * t - sa * b, y + sa * t + ca * b]); }
+        const band = D.band(mid, r * 0.16, r * 0.16, 3), L2 = band.L, R2 = band.R, n = L2.length, hw = Math.hypot(L2[0][0] - R2[0][0], L2[0][1] - R2[0][1]), step = Math.max(2, Math.round(hw * 0.75 / 3));
+        D.white(band.poly);
+        for (let i = 0; i + step * 2 < n; i += step) { const a = L2[i], b = R2[i + step * 2], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], tx = mid[Math.min(mid.length - 1, i + 1)][0] - mid[i][0], ty = mid[Math.min(mid.length - 1, i + 1)][1] - mid[i][1], tl = Math.hypot(tx, ty) || 1;
+          const bow = [m[0] - tx / tl * hw * 0.25, m[1] - ty / tl * hw * 0.25], strand = P.sample([a, bow, b], false, 2); P.path(strand, { w: 1, c: K, passes: 1, rough: 0.1 });
+          // shade the far half of each twist, so the strands read as round
+          for (let k = 1; k <= 3; k++) { const u = 0.5 + k * 0.12, p0 = strand[Math.floor(u * (strand.length - 1))]; P.line(p0[0], p0[1], p0[0] + tx / tl * hw * 0.45, p0[1] + ty / tl * hw * 0.45, { w: 0.5, c: K, passes: 1, over: 0, rough: 0.1 }); } }
+        D.pl(L2, 1.2); D.pl(R2, 1.5); },
       cell: (x, y, r, fill) => { const pts = D.blob(x, y, r, 9, 0.18); D.white(pts); D.fill(fill || pick(['echo', 'stipple', 'bubbles', 'night', 'hatch', 'scales', 'rays', 'eye', 'maze', 'cells']), pts, x, y, r); D.ol(pts, r > 40 ? 2 : 1.5); if (r > 26 && P.R() > 0.4) D.ol(D.shrink(pts, x, y, 1.1), 0.7); return pts; },
     };
-    D.motif = (name, x, y, r, ...a) => (M[name] || M.puff)(x, y, r, ...a);
-    D.BIG = ['puff', 'puff', 'eye', 'ripple', 'pod', 'cells', 'shell', 'honey', 'bands', 'mushroom', 'rosette', 'scales', 'maze', 'curl', 'coral', 'fern', 'window', 'night', 'drips', 'stack', 'puff', 'cells'];
-    D.SMALL = ['puff', 'ripple', 'cells', 'eye', 'pod', 'bands', 'shell', 'night', 'puff', 'ripple'];
+    // each motif draws with its own random stream, so adding or removing one does not reshuffle the rest
+    D.motif = (name, x, y, r, ...a) => P.isolate ? P.isolate('motif:' + name, () => (M[name] || M.puff)(x, y, r, ...a)) : (M[name] || M.puff)(x, y, r, ...a);
+    D.BIG = ['puff', 'puff', 'eye', 'ripple', 'pod', 'cells', 'shell', 'honey', 'bands', 'mushroom', 'rosette', 'scales', 'maze', 'curl', 'coral', 'fern', 'window', 'night', 'drips', 'stack', 'puff', 'cells'].concat((S.ENH || {}).newMotifs ? ['gear', 'ivy'] : []);
+    D.SMALL = ['puff', 'ripple', 'cells', 'eye', 'pod', 'bands', 'shell', 'night', 'puff', 'ripple'].concat((S.ENH || {}).newMotifs ? ['gear', 'chain'] : []);
 
     /* ---------------- along a path you choose ----------------
        D.along(pts, step) resamples any centreline (a few control points are smoothed first) into evenly spaced stations:

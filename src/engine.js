@@ -120,10 +120,52 @@
     def('#', .6, '.18,0 .28,1', '.4,0 .5,1', '.02,.3 .58,.3', '.02,.7 .58,.7');
     def('*', .4, '.2,.9 .2,.5', '.02,.8 .38,.6', '.02,.6 .38,.8');
     def('=', .46, '0,.36 .46,.36', '0,.62 .46,.62');
+    // lower case (x-height .62, descenders to -.3) and a few more symbols
+    def('a', .46, '~.42,.5 .32,.62 .14,.6 .02,.42 .02,.18 .14,.02 .3,0 .42,.12', '.44,.62 .44,0');
+    def('b', .48, '0,1 0,0', '~0,.4 .12,.58 .28,.62 .42,.5 .46,.3 .4,.08 .24,0 .1,.04 0,.16');
+    def('c', .44, '~.42,.52 .3,.62 .14,.6 .02,.44 .02,.18 .14,.02 .3,0 .42,.1');
+    def('d', .48, '.46,1 .46,0', '~.46,.4 .34,.58 .18,.62 .04,.5 0,.3 .06,.08 .22,0 .36,.04 .46,.16');
+    def('e', .46, '~0,.32 .44,.32 .42,.5 .26,.62 .1,.56 .02,.38 .04,.16 .16,.02 .32,0 .44,.08');
+    def('f', .36, '~.36,.96 .26,1 .14,.94 .12,.8 .12,0', '0,.6 .3,.6');
+    def('g', .46, '~.42,.5 .3,.62 .14,.6 .02,.44 .04,.22 .18,.1 .32,.12 .42,.24', '~.44,.62 .44,-.12 .36,-.26 .2,-.3 .06,-.22');
+    def('h', .46, '0,1 0,0', '~0,.42 .12,.58 .28,.62 .4,.54 .44,.38 .44,0');
+    def('i', .14, '.06,.62 .06,0', '.06,.84 .06,.88');
+    def('j', .2, '~.14,.62 .14,-.14 .08,-.26 -.04,-.3', '.14,.84 .14,.88');
+    def('k', .44, '0,1 0,0', '.4,.62 0,.24', '.12,.34 .42,0');
+    def('l', .2, '~.06,1 .06,.12 .1,.02 .18,0');
+    def('m', .66, '0,.62 0,0', '~0,.42 .1,.58 .2,.62 .3,.52 .32,.4 .32,0', '~.32,.42 .42,.58 .52,.62 .62,.52 .64,.4 .64,0');
+    def('n', .46, '0,.62 0,0', '~0,.42 .12,.58 .28,.62 .4,.54 .44,.38 .44,0');
+    def('o', .46, '~.23,.62 .06,.54 0,.31 .06,.08 .23,0 .4,.08 .46,.31 .4,.54 .23,.62');
+    def('p', .48, '0,.62 0,-.3', '~0,.42 .12,.58 .28,.62 .42,.5 .46,.3 .4,.08 .24,0 .1,.04 0,.16');
+    def('q', .48, '.46,.62 .46,-.3', '~.46,.42 .34,.58 .18,.62 .04,.5 0,.3 .06,.08 .22,0 .36,.04 .46,.16');
+    def('r', .34, '0,.62 0,0', '~0,.38 .1,.56 .22,.62 .34,.6');
+    def('s', .4, '~.38,.54 .26,.62 .1,.6 .02,.5 .06,.38 .22,.32 .36,.26 .4,.12 .3,.02 .14,0 0,.08');
+    def('t', .34, '~.12,.9 .12,.12 .16,.02 .26,0 .32,.04', '0,.6 .3,.6');
+    def('u', .46, '~0,.62 0,.2 .06,.04 .2,0 .34,.06 .44,.2', '.44,.62 .44,0');
+    def('v', .42, '0,.62 .21,0 .42,.62');
+    def('w', .6, '0,.62 .15,0 .3,.46 .45,0 .6,.62');
+    def('x', .4, '0,.62 .4,0', '0,0 .4,.62');
+    def('y', .44, '0,.62 .22,.04', '~.44,.62 .2,-.06 .12,-.22 .02,-.3');
+    def('z', .4, '0,.62 .4,.62 0,0 .4,0');
+    def('@', .66, '~.42,.34 .34,.42 .24,.42 .18,.32 .2,.22 .3,.18 .4,.24 .44,.36 .46,.2 .54,.18 .62,.3 .62,.5 .52,.72 .32,.8 .12,.7 .02,.48 .06,.22 .22,.04 .44,0 .58,.06');
+    def('º', .3, '~.15,1 .04,.94 .04,.8 .15,.74 .26,.8 .26,.94 .15,1', '.04,.64 .26,.64');
+    def('$', .52, '~.5,.88 .36,1 .17,1 .03,.88 .03,.68 .24,.54 .44,.4 .52,.24 .48,.1 .34,0 .14,0 0,.14', '.26,1.12 .26,-.12');
+    def('[', .26, '.24,1.1 .06,1.1 .06,-.12 .24,-.12');
+    def(']', .26, '.02,1.1 .2,1.1 .2,-.12 .02,-.12');
     G['?'].fallback = true;
     // characters the alphabet draws as their nearest cousin
     [['—', '–'], ['−', '-'], ["'", '’'], ['‘', '’'], ['“', '"'], ['”', '"'], ['·', '.'], ['…', '.']].forEach(([a, b]) => { G[a] = G[b]; });
   })();
+
+  // kerning: pairs that look too far apart with plain advance widths (in cap heights)
+  const KERN = {}; [['AV', -.09], ['AW', -.07], ['AY', -.09], ['AT', -.07], ['TA', -.07], ['VA', -.09], ['WA', -.07], ['YA', -.09], ['LT', -.09], ['LV', -.09], ['LW', -.07],
+    ['LY', -.09], ['PA', -.06], ['FA', -.05], ['TO', -.03], ['OT', -.03], ['To', -.08], ['Ta', -.08], ['Te', -.08], ['Yo', -.08], ['Vo', -.06], ['L\'', -.08], ['T.', -.08], ['T,', -.08],
+    ['P.', -.08], ['V.', -.08], ['Y.', -.08], ['F.', -.06], ['r.', -.06], ['LO', -.03], ['RT', -.03], ['RV', -.04], ['RY', -.04], ['KO', -.03]].forEach(([k, v]) => { KERN[k] = v; });
+  const kern = (a, b) => (a && b && KERN[a + b]) || 0;
+  const caseOf = (str, o) => o.case === 'mixed' ? String(str) : String(str).toUpperCase();
+  // engine options; a page can override them with window.SKETCH_OPTS before engine.js loads. isolate and contactShadow are
+  // off by default so existing drawings keep their layout; turn them on for new ones
+  const ENH = Object.assign({ kern: true, dry: 0.1, isolate: false, evenStipple: true, gridHatch: true, contactShadow: 0 }, (typeof window !== 'undefined' && window.SKETCH_OPTS) || {});
 
   class Page {
     constructor(seed, o = {}) {
@@ -141,6 +183,15 @@
       let h = 2166136261; for (const ch of String(name)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
       this.R = rng((this.seed ^ h) | 0); this.sections.push({ name: String(name), at: this.ops.length }); return this;
     }
+    /* run fn with a random stream of its own (seeded from the page seed and tag), then restore the page's stream as it
+       was: whatever fn draws, the randomness of everything drawn after it does not change */
+    isolate(tag, fn, force) { if (!ENH.isolate && !force) return fn(this); const keep = this.R; let h = 2166136261; for (const ch of String(tag)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+      this.R = rng((this.seed ^ h ^ (this._iso = (this._iso || 0) + 1) * 0x9E3779B1) | 0); try { return fn(this); } finally { this.R = keep; } }
+    /* live parts: fn(P, t) draws a part at time t; the pen draws it at t = 0, then the player redraws it every frame.
+       o: { fps (redraw rate, 0 = draw once and move it with xf), cache, xf: t => ({ x, y, rot, px, py }) } */
+    live(fn, o = {}) { const A = this.anims || (this.anims = []), i0 = this.ops.length; fn(this, 0); A.push(Object.assign({ i0, i1: this.ops.length, fn: (Q, t) => fn(Q, t) }, o)); return this; }
+    /* clip everything fn draws to a polygon (the player clips each op on the canvas) */
+    clip(poly, fn) { const i0 = this.ops.length; fn(this); for (let i = i0; i < this.ops.length; i++) if (!this.ops[i].clip) this.ops[i].clip = poly; return this; }
     r(a = 1, b) { return b === undefined ? this.R() * a : a + this.R() * (b - a); }
     ri(a, b) { return Math.floor(this.r(a, b + 1)); }
     pick(arr) { return arr[Math.floor(this.R() * arr.length)]; }
@@ -187,6 +238,10 @@
           pts.push([x1 + ux * d + nx * off, y1 + uy * d + ny * off,
             w * (p ? 0.75 : 1) * (0.72 + 0.4 * Math.sin(Math.PI * Math.min(1, t * 0.98 + 0.01)))]);
         }
+        // a dry pen: now and then a long stroke skips for a moment, leaving a hairline gap
+        const hsh = Math.abs(Math.sin(x1 * 12.9898 + y1 * 78.233 + x2 * 37.719 + y2 * 4.581) * 43758.5453) % 1;
+        if (!p && ENH.dry && len > 140 && pts.length > 8 && hsh < ENH.dry) { const cut = Math.floor(pts.length * (0.3 + 0.4 * ((hsh * 7.31) % 1))), g2 = Math.max(1, Math.round(2.5 / Math.max(1, L / n)));
+          this.push({ k: 's', p: pts.slice(0, cut + 1), c, a }); this.push({ k: 's', p: pts.slice(cut + g2), c, a }); continue; }
         this.push({ k: 's', p: pts, c, a: a * (p ? 0.55 : 1) });
       }
       return this;
@@ -277,7 +332,10 @@
       let y0 = Infinity, y1 = -Infinity;
       for (const p of q) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
       const jit = o.jit ?? 0.25, inset = o.inset ?? 1, rag = o.ragged ?? 1;
-      for (let y = y0 + gap * this.r(); y < y1; y += gap * (1 + jit * (this.r() - 0.5) * 2)) {
+      // o.grid (or the page's _gridHatch while a 3D render runs): lines sit on a shared grid, so neighbouring shapes
+      // hatched at the same angle and spacing line up into one continuous stroke instead of a seam
+      const grid = o.grid ?? this._gridHatch;
+      for (let y = grid ? (this.r(), Math.ceil(y0 / gap) * gap) : y0 + gap * this.r(); y < y1; y += grid ? (this.r(), gap) : gap * (1 + jit * (this.r() - 0.5) * 2)) {
         const xs = [];
         for (let i = 0; i < q.length; i++) {
           const a = q[i], b = q[(i + 1) % q.length];
@@ -303,11 +361,20 @@
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       for (const p of poly) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
       const out = []; let tries = 0;
+      // even stipple: a stippler's dots keep a little apart (no clumps, no bare holes); min spacing from the
+      // shape's area and the dot count, checked on a grid
+      let area = 0; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; area += a[0] * b[1] - b[0] * a[1]; } area = Math.abs(area) / 2;
+      const md = ENH.evenStipple && o.even !== false ? Math.sqrt(area / Math.max(1, n)) * 0.4 : 0, cs = md || 1, gridS = md ? new Map() : null;
+      const near = (x, y) => { const gx = Math.floor(x / cs), gy = Math.floor(y / cs); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const a = gridS.get((gx + i) + ',' + (gy + j)); if (a) for (const q of a) if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < md * md) return true; } return false; };
+      const loc = md ? rng(((x0 * 73856093) ^ (y0 * 19349663) ^ (n * 83492791)) | 0) : null, rr = loc ? (a, b) => a + loc() * (b - a) : (a, b) => this.r(a, b), RR = loc || (() => this.R());
+      // replay the plain stipple's draws on the page stream, so everything after this stipple stays exactly as it was
+      if (loc) { let c2 = 0, t2 = 0; while (c2 < n && t2++ < n * 30) { const x = this.r(x0, x1), y = this.r(y0, y1); if (!pip(poly, x, y)) continue; if (o.fade && this.R() > o.fade(x, y)) continue; this.r(); c2++; } }
       while (out.length < n && tries++ < n * 30) {
-        const x = this.r(x0, x1), y = this.r(y0, y1);
+        const x = rr(x0, x1), y = rr(y0, y1);
         if (!pip(poly, x, y)) continue;
-        if (o.fade && this.R() > o.fade(x, y)) continue;
-        out.push([x, y, this.r(0.4, o.r ?? 0.9)]);
+        if (o.fade && RR() > o.fade(x, y)) continue;
+        if (md) { if (near(x, y)) continue; const k = Math.floor(x / cs) + ',' + Math.floor(y / cs); (gridS.get(k) || gridS.set(k, []).get(k)).push([x, y]); }
+        out.push([x, y, rr(0.4, o.r ?? 0.9)]);
       }
       return this.dots(out, o.c, o.a ?? 0.55);
     }
@@ -322,25 +389,56 @@
     }
     erase(poly) { return this.push({ k: 'e', poly }); }
 
+    /* ---------- flow hatching: evenly spaced strokes that follow a direction field inside a shape ----------
+       field: 'contour' (rings around the shape's centre), 'radial', 'along' (follow the nearest edge), a number (a
+       fixed angle in degrees), or a function (x, y) => angle in radians. gap: spacing; len: longest stroke; fade(x, y)
+       → 0..1 keeps a stroke with that probability (by its middle). w, a, c, rough as usual. */
+    flow(poly, o = {}) {
+      return this.isolate('flow', () => {
+        let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, cx = 0, cy = 0; for (const p of poly) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); cx += p[0] / poly.length; cy += p[1] / poly.length; }
+        const gap = o.gap ?? 4, step = gap * 0.5, maxL = o.len ?? 1e9, sep = gap * (o.sep ?? 0.6), f = o.field ?? 'contour', inset = o.inset ?? 1;
+        const edgeAng = (x, y) => { let best = 1e18, ang = 0; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)), ex = a[0] + dx * t - x, ey = a[1] + dy * t - y, d = ex * ex + ey * ey; if (d < best) { best = d; ang = Math.atan2(dy, dx); } } return [ang, Math.sqrt(best)]; };
+        const field = typeof f === 'function' ? f : typeof f === 'number' ? () => f * Math.PI / 180 : f === 'radial' ? (x, y) => Math.atan2(y - cy, x - cx) : f === 'along' ? (x, y) => edgeAng(x, y)[0] : (x, y) => Math.atan2(y - cy, x - cx) + Math.PI / 2;
+        const G2 = new Map(), key = (x, y) => Math.floor(x / sep) + ',' + Math.floor(y / sep), addP = (x, y) => { const k = key(x, y); (G2.get(k) || G2.set(k, []).get(k)).push([x, y]); };
+        const crowded = (x, y, d) => { const gx = Math.floor(x / sep), gy = Math.floor(y / sep); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const a = G2.get((gx + i) + ',' + (gy + j)); if (a) for (const q of a) if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < d * d) return true; } return false; };
+        const ok = (x, y) => pip(poly, x, y) && (inset <= 0 || edgeAng(x, y)[1] > inset);
+        const seeds = []; for (let y = y0 + gap * 0.5; y < y1; y += gap) for (let x = x0 + gap * 0.5; x < x1; x += gap) seeds.push([x + this.r(-gap, gap) * 0.4, y + this.r(-gap, gap) * 0.4]);
+        for (let i = seeds.length - 1; i > 0; i--) { const j = Math.floor(this.R() * (i + 1)); [seeds[i], seeds[j]] = [seeds[j], seeds[i]]; }
+        let dirSign = 1;
+        for (const [sx, sy] of seeds) {
+          if (!ok(sx, sy) || crowded(sx, sy, gap)) continue;
+          const trace = sg => { const out = []; let x = sx, y = sy, prev = null; for (let k = 0; k * step < maxL / 2; k++) { let a = field(x, y); let dx = Math.cos(a), dy = Math.sin(a); if (prev && dx * prev[0] + dy * prev[1] < 0) { dx = -dx; dy = -dy; } prev = [dx, dy]; x += dx * step * sg; y += dy * step * sg; if (!ok(x, y) || crowded(x, y, sep)) break; out.push([x, y]); } return out; };
+          const line = trace(-1).reverse().concat([[sx, sy]], trace(1));
+          if (line.length < 3) continue;
+          line.forEach(q => addP(q[0], q[1]));
+          const m = line[line.length >> 1]; if (o.fade && this.R() > o.fade(m[0], m[1])) continue;
+          this.path(line, { w: o.w ?? 0.55, c: o.c, a: o.a ?? 0.8, rough: o.rough ?? 0.25, passes: 1 });
+        }
+        return this;
+      });
+    }
+
     /* ---------- lettering ---------- */
     measure(str, size = 18, o = {}) {
       const capH = size * 0.62, ls = (o.ls ?? 0) / capH; let u = 0;
-      for (const ch of String(str).toUpperCase()) u += ch === ' ' ? 0.5 : (G[ch] || G['?']).w + 0.26 + ls;
+      let prev = ''; for (const ch of caseOf(str, o)) { u += ch === ' ' ? 0.5 : (G[ch] || G['?']).w + 0.26 + ls + (ENH.kern ? kern(prev, ch) : 0); prev = ch; }
       return Math.max(0, u - 0.26) * capH;
     }
     text(str, x, y, o = {}) {
+      if (ENH.isolate && !o._iso) return this.isolate('text:' + str, () => this.text(str, x, y, Object.assign({}, o, { _iso: true })));
       // halo: draw the same letters again underneath, wider and in the halo colour, so light lettering reads on dark ground
       if (o.halo) { const i0 = this.ops.length; this.text(str, x, y, Object.assign({}, o, { halo: null })); const top = this.ops.slice(i0), w = o.haloW ?? 2.2;
         const under = top.map(op => op.k === 's' ? Object.assign({}, op, { c: o.halo, a: Math.min(1, (op.a || 1) * 1.1), p: op.p.map(q => [q[0], q[1], q[2] * w]) }) : null).filter(Boolean);
         this.ops.splice(i0, 0, ...under); return this; }
       const size = o.size ?? 18, capH = size * 0.62, hand = o.font === HAND;
       const slant = o.slant ?? (hand ? 0.03 : 0.17), ls = (o.ls ?? 0) / capH;
-      const s = String(str).toUpperCase(), rot = o.rot || 0, cr = Math.cos(rot), sr = Math.sin(rot);
+      const s = caseOf(str, o), rot = o.rot || 0, cr = Math.cos(rot), sr = Math.sin(rot);
       const tw = this.measure(s, size, o), ax = o.align === 'center' ? -tw / 2 : o.align === 'right' ? -tw : 0;
       const fine = !!o.fine, lw = o.lw ?? (fine ? Math.max(0.55, size * 0.055) : Math.max(0.85, size * (hand ? 0.058 : 0.052))), col = o.c || this.ink, al = o.a ?? 0.88, ro = fine ? 0.02 : 0.3;
-      let u = 0;
+      let u = 0, prev = '';
       for (const ch of s) {
-        if (ch === ' ') { u += 0.5; continue; }
+        if (ch === ' ') { u += 0.5; prev = ch; continue; }
+        if (ENH.kern) u += kern(prev, ch); prev = ch;
         if (!G[ch]) (this.missing || (this.missing = new Set())).add(ch);
         const g = G[ch] || G['?'], sx = this.r(0.95, 1.06), sy = this.r(0.95, 1.05), dy = this.r(-0.045, 0.045) * capH, tilt = this.r(-0.05, 0.05);
         for (const st of g.s) {
@@ -558,5 +656,14 @@
     };
   }
 
-  g.Sketch = { cam, Page, TAU, W, H, rng, rgb, rgba, pip, catmull, lerp, lerpP, HAND, NOTE };
+  /* style presets: a scene can start from one: Object.assign({ name, build }, Sketch.STYLES['dense-ink'].scene) and
+     pass Sketch.STYLES['dense-ink'].render3d to D.render */
+  const STYLES = {
+    'dense-ink': { scene: { theme: 'pencil', ink: '#0c0c0c' }, render3d: { ink: '#0c0c0c', paper: '#ffffff', light: [-0.2, -0.8, 0.45], ambient: 0.04, w: 1.4, rough: 0.3, zw: 0, hatchMin: 0.06, rich: true, darken: 1.5, gap: 3.4, style: 'mixed', silhouette: true }, line: { w: 1.3, rough: 0.35 } },
+    'technical': { scene: { theme: 'cream', ink: '#26303a' }, render3d: { ink: '#26303a', light: [-0.5, -0.6, 0.7], ambient: 0.25, w: 1.1, rough: 0.15, hatchMin: 0.3 }, line: { w: 1.1, rough: 0.2, passes: 1 } },
+    'ballpoint': { scene: { theme: 'bluepen', ink: '#1f3a8a' }, render3d: { ink: '#1f3a8a', light: [-0.5, -0.6, 0.7], ambient: 0.2, w: 0.9, rough: 0.8, rich: true, style: 'scribble' }, line: { w: 0.9, rough: 0.9, passes: 2 } },
+    'kraft': { scene: { theme: 'kraft', ink: '#141010' }, render3d: { ink: '#141010', paper: '#b68b56', light: [-0.4, -0.7, 0.6], ambient: 0.1, w: 1.6, rough: 0.4, rich: true, style: 'engrave' }, line: { w: 1.6, rough: 0.5 } },
+    'riso': { scene: { theme: 'riso', ink: '#1c4fa0' }, render3d: { ink: '#1c4fa0', paper: '#ffffff', light: [-0.4, -0.7, 0.6], ambient: 0.15, w: 1.2, rough: 0.3, rich: true, style: 'stipple' }, line: { w: 1.2, rough: 0.3 } },
+  };
+  g.Sketch = { cam, Page, TAU, W, H, rng, rgb, rgba, pip, catmull, lerp, lerpP, HAND, NOTE, STYLES, ENH };
 })(window);

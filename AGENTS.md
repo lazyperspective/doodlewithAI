@@ -65,6 +65,7 @@ minor: 10, major: 50, mc: 'rgba(60,90,160,0.12)', Mc: 'rgba(60,90,160,0.25)' } }
 | `ink` | `#f4f0e4` | multiply | fine grey | black ink + one accent colour |
 | `archive` | `#f1e9d2` | multiply | — | old archive paper: exploded views, catalogues |
 | `bluepen` | `#efe6d0` | multiply | — | yellowed paper for blue ballpoint |
+| `riso` | `#f3eee2` | multiply | — | a two-ink risograph print: black prints blue, every other colour pink, slightly out of register |
 
 **Knock-outs and the ink blend.** The ink is drawn on its own layer and laid on the paper. With `multiply` (most
 themes) white ink is invisible, so to hide what is behind something (`P.occlude`, `D.white`, the 3D `paper`
@@ -129,6 +130,23 @@ reading even when zoomed.
 | `P.xf(scale, cx, cy, tx, ty)` … `P.xfEnd()` | draw a detail scaled around (cx, cy) and moved to (tx, ty) — for insets and magnified details |
 
 `Sketch` also exports `lerp`, `pip(poly, x, y)` (point in polygon), `catmull`, `rng(seed)`, `TAU`.
+
+**Newer tools** (see `scenes/_features.js` for each in use):
+
+| call | does |
+|---|---|
+| `P.flow(poly, { field, gap, len, fade, w, a })` | evenly spaced strokes that follow a field inside a shape: `'contour'` (rings), `'along'` (parallel to the nearest edge), `'radial'`, an angle in degrees, or `(x, y) => radians`. The best way to shade a curved form |
+| `P.clip(poly, () => { … })` | everything drawn inside the function is clipped to `poly` |
+| `P.isolate(tag, fn, true)` | draw `fn` with its own random stream, so editing it does not change the randomness of what comes after |
+| `P.live(fn, { fps, cache, xf })` | a moving part, `fn(Q, t)`; see also `SketchKit.liveKit.spin / bob / blink / drift` |
+| `P.text(s, x, y, { case: 'mixed' })` | lower case as written (default: upper case); kerning is automatic |
+| `SketchKit.tex.stone / ripples / fur / folds(P, poly, o)` | surface textures, clipped to `poly` |
+| `D.fill('bricks' \| 'slate' \| 'rivets' \| 'grain' \| 'flow', …)`, `D.motif('gear' \| 'chain' \| 'ivy' \| 'rope', …)` | new fills and motifs |
+| `Sketch.STYLES[name]` | presets (`dense-ink`, `technical`, `ballpoint`, `kraft`, `riso`): `.scene` (theme, ink), `.render3d` (options for `D.render`), `.line` |
+
+Tools: `node tools/render.mjs <name> --theme riso` (any drawing as a two-ink riso print), `node tools/export-svg.mjs
+<name> [--plotter]`, `node tools/critique.mjs renders/<name>.png` (run it after each render: it reports empty
+quarters, too much mid-grey, missing blacks and the focal point).
 
 ## The doodle kit (`src/doodle.js`, `SketchDoodle.kit(P)`)
 
@@ -214,7 +232,7 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
   a0, a1, tube, darkBore })` for lathe shapes and cut-aways; `helix(cx, cy, r, z0, z1, turns)` → points for springs.
 * Render options: `light`, `ink`, `paper` (occlusion colour — see *Knock-outs*), `ambient` (0.2), `hatchMin` (faces
   lighter than this get no hatching), `gap` (hatch spacing; smaller is darker), `w` (edge width), `rough`,
-  `silhouette`, `rich: true` (layered engraving; with it, `darken` scales every face's darkness, 1.25 by default, and `stipple: false` turns off its stipple), `style: 'stipple' |
+  `silhouette`, `contactShadow` (e.g. 6: each part casts a short hatched shadow onto the parts behind it), `rich: true` (layered engraving; with it, `darken` scales every face's darkness, 1.25 by default, and `stipple: false` turns off its stipple), `style: 'stipple' |
   'contour' | 'crosscontour' | 'engrave' | 'flick' | 'spot' | 'wash' | 'brushed' | 'scribble' | 'mixed'` (with
   `rich`), `fog: [near, far]`, `zw`, `shadowSide`.
 * Also: `polyline3`, `dashed3`, `label3(P, text, point, cam, dx, dy)`, `knurl`, `onFloor(point, lightDir, z)` for cast

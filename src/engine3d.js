@@ -59,7 +59,11 @@
   const shift = (faces, dx, dy, dz) => place(faces, { t: [dx, dy, dz] });
 
   /* ---------------- renderer ---------------- */
+  const ENH3 = () => (g.Sketch.ENH || {});
   function render(P, faces, cam, o = {}) {
+    // the render draws with its own random stream (so edits elsewhere do not reshuffle it, and it does not
+    // reshuffle what comes after), and hatching on a shared grid so neighbouring faces' lines meet
+    if (!o._iso) { const keep = P._gridHatch; P._gridHatch = ENH3().gridHatch !== false; try { const go = () => render(P, faces, cam, Object.assign({}, o, { _iso: true })); return ENH3().isolate && P.isolate ? P.isolate('render3d', go) : go(); } finally { P._gridHatch = keep; } }
     const L = norm(o.light || [-0.55, -0.5, 0.75]), paper = o.paper || '#ffffff', ink = o.ink, amb = o.ambient ?? 0.2, thr = o.hatchFrom ?? 0.9;
     const items = [];
     for (const f of faces) {
@@ -77,9 +81,22 @@
       for (const f of faces) { if (f.custom || f.ghost) continue; const c = [0, 0, 0]; f.v.forEach(v => { c[0] += v[0]; c[1] += v[1]; c[2] += v[2]; }); c[0] /= f.v.length; c[1] /= f.v.length; c[2] /= f.v.length;
         const front = f.double || dot(f.n, sub(cam.eye, c)) > 0.001; f.v.forEach((v, i) => { const k = key(v, f.v[(i + 1) % f.v.length]); const e = sil.get(k) || { front: 0, back: 0 }; e[front ? 'front' : 'back']++; sil.set(k, e); }); }
       sil.edge = (f, i) => { const e = sil.get(key(f.v[i], f.v[(i + 1) % f.v.length])); return e && e.back > 0; }; }
+    // contact shadows: each face casts a short shadow, away from the light, onto the faces already drawn behind it
+    // (hatched only where it lands on them, never on the paper), so parts sitting on or in front of others darken
+    // the crevices between them
+    const csL = o.contactShadow ?? (ENH3().contactShadow ?? 0), drawn = new Map(), CS = 48;
+    const addDrawn = (poly, bb) => { for (let gx = Math.floor(bb[0] / CS); gx <= Math.floor(bb[2] / CS); gx++) for (let gy = Math.floor(bb[1] / CS); gy <= Math.floor(bb[3] / CS); gy++) { const k = gx + ',' + gy; (drawn.get(k) || drawn.set(k, []).get(k)).push([poly, bb]); } };
+    const onDrawn = (x, y) => { const a = drawn.get(Math.floor(x / CS) + ',' + Math.floor(y / CS)); if (a) for (const [q, bb] of a) if (x >= bb[0] && x <= bb[2] && y >= bb[1] && y <= bb[3] && g.Sketch.pip(q, x, y)) return true; return false; };
     for (const it of items) {
       if (it.custom) { it.custom(P, cam); continue; }
       const { f, pr } = it, poly = pr.map(q => [q[0], q[1]]);
+      if (csL && !f.ghost && drawn.size) {
+        let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9; poly.forEach(([x, y]) => { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); });
+        const sz = Math.hypot(bx1 - bx0, by1 - by0);
+        if (sz > 6) { const sl = Math.min(csL, sz * 0.35), sp = f.v.map(v => cam.project(sub(v, mul(L, sl * 3))));
+          if (!sp.some(q => !q)) { const spoly = sp.map(q => [q[0], q[1]]);
+            const keepR = P.R; P.R = g.Sketch.rng((it.d * 1000) | 0); try { P.hatch(spoly, { ang: -45, gap: 2.1, w: 0.55, a: 0.8, c: ink, ragged: 0.2, inset: 0, piece: 6, rough: 0.2, fade: (x, y) => (!g.Sketch.pip(poly, x, y) && onDrawn(x, y)) ? 1 : 0 }); } finally { P.R = keepR; } } } }
+      if (csL && !f.ghost) { let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9; poly.forEach(([x, y]) => { bx0 = Math.min(bx0, x); by0 = Math.min(by0, y); bx1 = Math.max(bx1, x); by1 = Math.max(by1, y); }); addDrawn(poly, [bx0, by0, bx1, by1]); }
       const fk = o.fog ? Math.max(0, Math.min(1, (it.d - o.fog[0]) / (o.fog[1] - o.fog[0]))) : 0, fa = 1 - 0.68 * fk, fw = 1 - 0.45 * fk;
       if (!f.ghost) {
         P.occlude(poly, paper);
