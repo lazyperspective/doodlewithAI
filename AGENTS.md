@@ -97,7 +97,7 @@ Every method returns the page, so calls chain. Options `o` are all optional. Com
 |---|---|
 | `P.hatch(poly, { ang, gap, cross, fade, piece, w, a, inset, jit, ragged, rough })` | parallel strokes clipped to a polygon. `ang` in **degrees** (default −50; everything else in the engine is radians), `gap` spacing, `cross: 90` adds a cross-hatch, `fade(x, y) → 0..1` thins it out, `piece` breaks lines into short flicks (kept or dropped by their midpoint, so they can overrun a mask by up to `piece`), `inset` keeps strokes off the edge, `jit` varies the spacing, `ragged` varies the line ends |
 | `P.stipple(poly, n, { r, a, fade })` | n dots inside a polygon, thinned by `fade(x, y)` |
-| `P.wash(poly, colour, alpha, { grad, edge, jit })` | watercolour/marker fill. **`edge` defaults to 1, a darker pooled rim — pass `edge: 0` for a wash with no outline.** `jit` wobbles the boundary (0 = exact). `grad: { x0, y0, x1, y1, c0, a0, c1, a1 }` for a linear gradient (add `r0, r1` for radial) |
+| `P.wash(poly, colour, alpha, { grad, edge, jit, steps })` | watercolour/marker fill, laid in `steps` passes (5) as the pen draws; `steps: 1` lays it in one go, for solid spot blacks. **`edge` defaults to 1, a darker pooled rim — pass `edge: 0` for a wash with no outline.** `jit` wobbles the boundary (0 = exact). `grad: { x0, y0, x1, y1, c0, a0, c1, a1 }` for a linear gradient (add `r0, r1` for radial) |
 | `P.occlude(poly, colour)` | an opaque patch that hides what is under it — draw a background shape, occlude, then draw in front (colour: see *Knock-outs*) |
 | `P.backfill(i0, poly, colour)` | an opaque patch *under* the strokes drawn since `i0 = P.ops.length` — for "fill behind what I just drew" (an opaque cloud on kraft) |
 | `P.erase(poly)` | cut the ink layer back to bare paper. Nothing clips strokes to a region: to trim overruns at a picture's border, erase the outside afterwards |
@@ -187,15 +187,23 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
 
 * Solids: `extrude(pts, z0, z1)`, `cylinder(cx, cy, r, z0, z1, seg)`, `ringSolid(…)`, `gearMesh(cx, cy, r, teeth,
   z0, z1)`, `bodyOfBar(a, b, w0, w1, z0, z1)`, `revolve(cx, cy, [[r, z], …])` (lathe), `poly3(verts, insidePoint)`.
+* **Organic solids**: `tube(path3, r | r(t, i), { seg, caps, squash: [sx, sy], hdir: 'along' })` lofts rings along
+  any 3D path: bodies, necks, tentacles, bent pipes, horns, and a snail shell (a path on a logarithmic spiral with
+  `r = t => r0 * Math.exp(k * t)`). `sphere(cx, cy, cz, r, { sz })` is a ball, or an egg with `sz`. These have no
+  hard edges, so render with **`silhouette: true`**: every edge between a face turned to the camera and one turned
+  away is then inked, which outlines smooth lathes, cylinders, tubes and spheres.
   Move them with `place(faces, { rz, t: [dx, dy, dz] })` or `shift(faces, dx, dy, dz)`.
 * **A face** is `{ v: [[x, y, z], …], n: [nx, ny, nz], hard: [bool per edge] }` — vertices counter-clockwise seen
   from outside, the outward normal, and which edges get inked. `all: true` inks every edge; `poly3(verts, inside)`
   builds one for you with the normal pointing away from `inside`. Optional: `c` (a colour wash), `ca` (its opacity),
   `tone` (force a darkness 0–1), `ghost` (outline only, never hidden), `double` (visible from both sides), `noHatch`,
   `noEdge`, `hdir` (a 3D direction the hatching should follow), `layer` (draw order group, default 2), `bias`, `deco:
-  (P, cam, poly2d) => …` (draw extra detail on the face after it is shaded).
+  (P, cam, poly2d, face) => …` (draw extra detail on the face after it is shaded). **Read the corners from the
+  `face` argument**, not from a variable you captured when you built it: `place` and `shift` return copies, so a
+  captured face still has its old, unmoved corners.
 * **Custom items in the depth sort**: `{ custom: (P, cam) => { … }, c: [x, y, z], bias }` — a function drawn at the
-  depth of point `c`, for springs, screws, labels and guide lines that must sit between solids.
+  depth of point `c`, for springs, screws, labels and guide lines that must sit between solids. It takes a `layer`
+  too.
 * **Draw order** is back to front by `distance − bias − zw·z` (`zw` defaults to 3.5), so higher parts always draw
   over lower ones — good for exploded views. A positive `bias` brings an item forward, a large one (1e6) puts it
   on top.
@@ -204,11 +212,16 @@ D.render(P, faces, cam, { light: V.norm([-0.5, -0.6, 0.8]), hatchMin: 0.3 });
   `ringSolid(cx, cy, r0, r1, z0, z1, seg, { a0, a1, openInner })` for partial rings; `revolve(cx, cy, prof, { seg,
   a0, a1, tube, darkBore })` for lathe shapes and cut-aways; `helix(cx, cy, r, z0, z1, turns)` → points for springs.
 * Render options: `light`, `ink`, `paper` (occlusion colour — see *Knock-outs*), `ambient` (0.2), `hatchMin` (faces
-  lighter than this get no hatching), `gap`, `w`, `rough`, `rich: true` (layered engraving), `style: 'stipple' |
+  lighter than this get no hatching), `gap` (hatch spacing; smaller is darker), `w` (edge width), `rough`,
+  `silhouette`, `rich: true` (layered engraving; with it, `darken` scales every face's darkness, 1.25 by default, and `stipple: false` turns off its stipple), `style: 'stipple' |
   'contour' | 'crosscontour' | 'engrave' | 'flick' | 'spot' | 'wash' | 'brushed' | 'scribble' | 'mixed'` (with
   `rich`), `fog: [near, far]`, `zw`, `shadowSide`.
 * Also: `polyline3`, `dashed3`, `label3(P, text, point, cam, dx, dy)`, `knurl`, `onFloor(point, lightDir, z)` for cast
   shadows. Faces with a vertex behind the camera are skipped silently — if a part vanishes, move the camera back.
+* `D.render` draws everything when you call it, so its strokes count under whichever `P.section` was opened last:
+  open a section such as `P.section('3d')` just before it. Any `P.r`/`P.R` call inside a `deco` or `custom`
+  function takes numbers from the page's one random stream, so changing one shifts the randomness of everything drawn
+  after it; that is normal, and the drawing stays the same from run to run.
 
 **Exploded views** (see `scenes/typewriter.js`, `scenes/camera3d.js`): explode along one axis and keep a low camera
 pitch; the gap between layers must be larger than the layer's depth × tan(pitch), or upper parts hide lower ones. Or
@@ -255,6 +268,60 @@ The pen draws the `t = 0` version; afterwards the player redraws only those stro
     none (a wash's default edge, an occlude box, a knock-out larger than its shape)? Then zoom in (`--width 4800
     --crop …`) and check the detail: lettering, small parts, where strokes meet.
 
+## The dense ink style (*Tea Engine*, *Clock Island*)
+
+When someone asks for **"the Tea Engine style"**, "the Clock Island style", "dense ink", or a drawing that is weird,
+detailed, packed and shaded all over, they mean the look of `scenes/junkcathedral.js` and `scenes/clockisland.js`.
+It bends some of the rules above, so follow this recipe instead where they differ.
+
+* **One absurd idea, told straight.** An ordinary thing pushed until it is ridiculous: a cathedral crowned by a heap
+  of machinery whose only job is one cup of tea; islands that float on tangled roots. Draw it as seriously as an
+  architect would. Add a small joke that rewards a close look: a caption, a comic strip, a tiny sign.
+* **Ink on warm paper.** `theme: 'pencil'`, ink `#0c0c0c`, white `#ffffff` for knock-outs. Black only, or one tiny
+  accent (the tea, a red pipe, a red eye) used in three or four places at most.
+* **Build it in 3D, then draw on every face.** Use real solids (`D.extrude`, `D.cylinder`, `D.revolve`) and one
+  camera with some perspective, so the masses overlap and sit correctly. Then give every visible face a `deco` that
+  draws hand-inked detail in the face's own plane: map `(u, v)` on the face to the screen through `cam.project`
+  (see `planeProj` in either file) and draw windows, Gothic lancets, planks, bricks, rivets, vents and dotted rows in
+  `(u, v)`. Bare 3D shading alone looks like a render, and the hand-drawn layer on top is what makes it read as a drawing.
+* **Three values, and a lot of black.** Solid spot blacks (`P.wash(poly, '#060606', 1, { edge: 0, jit: 0, steps: 1
+  })`) for openings, shadow sides of deep recesses, undersides and windows; dense parallel hatching for the
+  half-tones; clean white on the lit faces. Then cut white back into the blacks: white tracery in a black window,
+  white lines on a black wall, white rocks against a black mass.
+* **Pile it up.** The main subject is an *accumulation*: dozens of small parts of different kinds (tanks, pipes with
+  flanges, domes, chimneys, gears, antennas, ladders, balconies, cables) stacked and crossing each other, with no two
+  the same size. Build it with a loop and a seeded random, not by hand, and include a few big parts to anchor it.
+* **White puff clusters.** Rocks, smoke, clouds and foam are clumps of white lumps, each knocked out, outlined, and
+  shaded with short strokes combed in from the rim on the shadow side, plus a little stipple (the doodle kit's
+  `lump`, `cloud` and `puffShade`, or `cloudCluster`/`puffs2D` in `junkcathedral.js`). Use them to break up straight edges and to
+  fill gaps in the pile.
+* **Fill the page, but not evenly.** The main subject takes 55–70 % of the width, with satellites placed around it:
+  a second tower or island, an airship or balloon on a cable, a crane, flying cups, birds, bubbles, a jellyfish, a
+  floating eye. The satellites are drawn lighter (outline, a little hatching) so the centre stays the darkest and
+  densest place on the sheet. Nothing should look unfinished, and no quarter of the page should be empty.
+* **Pack the insides.** Hollow or cut-open parts (the underside of an island, an arched doorway, a tank) are filled
+  edge to edge: a black mass with white doodle motifs, roots, pods and eyes grown into it (paint the black first, then the doodle kit's
+  `grow({ inside, dark: () => true })` and `fill`; call it something other than `D` when the file also uses `Sketch.D3`), or a stack of white puffs.
+* **Scale and life.** Tiny stick figures, stairs, ladders, chains, washing lines, hanging lamps and a flag or two
+  show how big it is. Ground it with ruled ground lines, a cast shadow and a scatter of pebbles.
+* **Values to start from.** The Tea Engine renders its 3D with `{ ink: '#0c0c0c', paper: '#ffffff', light: [-0.2,
+  -0.8, 0.45], ambient: 0.04, w: 1.4, rough: 0.3, zw: 0, hatchMin: 0.06, rich: true, darken: 1.5, gap: 3.4, style:
+  'mixed', silhouette: true }` (*mixed*: near-black faces become a solid black wash, the others dense hatching with a
+  little stipple). Clock Island uses `style: 'layered'`, `darken: 1.6`, `gap: 3.2`. Start from one of these and move
+  the light, not the other numbers: a light from the front and above gives white faces towards the viewer and black
+  sides, which is what this style wants.
+* **Creatures and soft things** are `D.tube` and `D.sphere` (a snail's body and shell, a whale, a tentacle, a
+  balloon), with the same deco treatment as buildings: scales, plates, bumps, rivets, white growth lines.
+* **Pen order.** The 3D renderer draws back to front, not in an illustrator's order, and that is fine for this style.
+  But draw spot blacks *with* the part they belong to (in its `deco`), not as one big shape at the start, or the
+  replay opens with a black blob.
+* **Budget.** These plates are 40 000–55 000 strokes; that is the one place to go past the usual limit. Use `P.dots`
+  for dots, and spend the strokes on the centre.
+
+Work in this order, rendering after each step: the 3D masses with plain shading; the deco on every face; the spot
+blacks and white cut-backs; the pile; the puffs; the satellites; the figures, joke and title. Then zoom in with
+`--width 4800 --crop …`: at that size every face should still have something to look at.
+
 ## Recipes from the plates — open these files for patterns
 
 The big plates are dense (50–120 KB, long lines): read them in parts, or search them for the helper you want.
@@ -276,7 +343,7 @@ learn from.
 | cinematic 3D interior with light shafts and fog | `scenes/nave3d.js`, `scenes/rotunda3d.js` |
 | abstract 3D ink sculpture | `scenes/doodle3d.js` |
 | grown doodles | `scenes/automatic.js`, `scenes/inkgarden.js`, `scenes/doodle-kit.js` |
-| ink illustration with a story, 3D masses drawn as ink | `scenes/junkcathedral.js`, `scenes/clockisland.js` |
+| **the dense ink style**: a weird story, 3D masses covered in hand-inked detail (see the section above) | `scenes/junkcathedral.js`, `scenes/clockisland.js` |
 | a whole illustrated world with animated parts | `scenes/house.js` |
 
 ## Files

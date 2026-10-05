@@ -351,7 +351,9 @@
             return [x + lx * cr - ly * sr, y + lx * sr + ly * cr];
           });
           const S = st.sm ? catmull(pts, false, fine ? capH * 0.12 : Math.max(2.4, capH * 0.14)) : pts;
-          if (S.length === 2) { const L = Math.hypot(S[1][0] - S[0][0], S[1][1] - S[0][1]); const k = Math.max(1, Math.ceil(L / (fine ? capH * 0.3 : Math.max(3, capH * 0.3)))); const D = []; for (let i = 0; i <= k; i++) D.push(lerpP(S[0], S[1], i / k)); this.path(D, { rough: ro, w: lw, c: col, a: al, passes: 1 }); }
+          if (!st.sm) { // straight strokes: put points along every segment, or the ink pinches thin between sharp corners (W, M, N, Z)
+            const D = [S[0]]; for (let j = 1; j < S.length; j++) { const L = Math.hypot(S[j][0] - S[j - 1][0], S[j][1] - S[j - 1][1]); const k = Math.max(1, Math.ceil(L / (fine ? capH * 0.3 : Math.max(3, capH * 0.3)))); for (let i = 1; i <= k; i++) D.push(lerpP(S[j - 1], S[j], i / k)); }
+            this.path(D, { rough: ro, w: lw, c: col, a: al, passes: 1 }); }
           else this.path(S, { rough: ro, w: lw, c: col, a: al, passes: 1 });
         }
         u += g.w + 0.26 + ls;

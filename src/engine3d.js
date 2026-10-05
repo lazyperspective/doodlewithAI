@@ -63,14 +63,20 @@
     const L = norm(o.light || [-0.55, -0.5, 0.75]), paper = o.paper || '#ffffff', ink = o.ink, amb = o.ambient ?? 0.2, thr = o.hatchFrom ?? 0.9;
     const items = [];
     for (const f of faces) {
-      if (f.custom) { const cc = f.c, d0 = Math.hypot(cam.eye[0] - cc[0], cam.eye[1] - cc[1], cam.eye[2] - cc[2]) - (f.bias || 0) - (o.zw ?? 3.5) * cc[2]; items.push({ custom: f.custom, d: d0 }); continue; }
+      if (f.custom) { const cc = f.c, d0 = Math.hypot(cam.eye[0] - cc[0], cam.eye[1] - cc[1], cam.eye[2] - cc[2]) - (f.bias || 0) - (o.zw ?? 3.5) * cc[2]; items.push({ custom: f.custom, d: d0, layer: f.layer }); continue; }
       const c = [0, 0, 0]; f.v.forEach(v => { c[0] += v[0]; c[1] += v[1]; c[2] += v[2]; }); c[0] /= f.v.length; c[1] /= f.v.length; c[2] /= f.v.length;
       if (!f.ghost && dot(f.n, sub(cam.eye, c)) <= 0.001 && !f.double) continue;
       const pr = f.v.map(cam.project); if (pr.some(q => !q)) continue;
       const d = Math.hypot(cam.eye[0] - c[0], cam.eye[1] - c[1], cam.eye[2] - c[2]) - (f.bias || 0) - (o.zw ?? 3.5) * c[2];
       items.push({ f, pr, d, c });
     }
-    items.sort((a, b) => ((a.f ? a.f.layer ?? 2 : 2) - (b.f ? b.f.layer ?? 2 : 2)) || (b.d - a.d));
+    items.sort((a, b) => (((a.f ? a.f.layer : a.layer) ?? 2) - ((b.f ? b.f.layer : b.layer) ?? 2)) || (b.d - a.d));
+    // silhouette: an edge between a face turned to the camera and one turned away is an outline, so ink it (smooth lathes, cylinders, spheres)
+    let sil = null;
+    if (o.silhouette) { sil = new Map(); const key = (a, b) => { const k1 = a.map(x => x.toFixed(2)).join(), k2 = b.map(x => x.toFixed(2)).join(); return k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1; };
+      for (const f of faces) { if (f.custom || f.ghost) continue; const c = [0, 0, 0]; f.v.forEach(v => { c[0] += v[0]; c[1] += v[1]; c[2] += v[2]; }); c[0] /= f.v.length; c[1] /= f.v.length; c[2] /= f.v.length;
+        const front = f.double || dot(f.n, sub(cam.eye, c)) > 0.001; f.v.forEach((v, i) => { const k = key(v, f.v[(i + 1) % f.v.length]); const e = sil.get(k) || { front: 0, back: 0 }; e[front ? 'front' : 'back']++; sil.set(k, e); }); }
+      sil.edge = (f, i) => { const e = sil.get(key(f.v[i], f.v[(i + 1) % f.v.length])); return e && e.back > 0; }; }
     for (const it of items) {
       if (it.custom) { it.custom(P, cam); continue; }
       const { f, pr } = it, poly = pr.map(q => [q[0], q[1]]);
@@ -117,8 +123,8 @@
       }
       if (f.noEdge) { }
       else if (f.all) { const p2 = poly.concat([poly[0]]); P.path(p2, { rough: o.rough ?? 0.4, w: (o.w ?? 1.25) * fw, c: ink, a: 0.97 * fa, passes: 1 }); }
-      else for (let i = 0; i < poly.length; i++) if (f.hard[i]) { const a = poly[i], b = poly[(i + 1) % poly.length]; P.line(a[0], a[1], b[0], b[1], { w: (o.w ?? 1.25) * fw, c: ink, a: 0.97 * fa, rough: o.rough ?? 0.35, over: 0.4, passes: 1 }); }
-      if (f.deco) f.deco(P, cam, poly);
+      else for (let i = 0; i < poly.length; i++) if ((f.hard && f.hard[i]) || (sil && sil.edge(f, i))) { const a = poly[i], b = poly[(i + 1) % poly.length]; P.line(a[0], a[1], b[0], b[1], { w: (o.w ?? 1.25) * fw, c: ink, a: 0.97 * fa, rough: o.rough ?? 0.35, over: 0.4, passes: 1 }); }
+      if (f.deco) f.deco(P, cam, poly, f);
     }
     return items.length;
   }
@@ -156,8 +162,33 @@
     let vv = v; if (dot(n, sub(inside, c)) < 0) { n = mul(n, -1); vv = v.slice().reverse(); }
     return Object.assign({ v: vv, n, hard: vv.map(() => true) }, o);
   }
+  /* tube: a loft of rings along a 3D path, for bodies, tentacles, bent pipes and shells. r is a number or r(t, i) with
+     t 0..1 along the path; o.seg ring segments, o.caps closes the ends, o.squash [sx, sy] flattens the ring, the hatching runs round
+     the tube (o.hdir: 'along' runs it along the path).
+     Faces have no hard edges, so render with { silhouette: true } to ink its outline. */
+  function tube(path, r, o = {}) {
+    const seg = o.seg ?? 16, n = path.length, faces = [], rf = typeof r === 'function' ? r : () => r, sq = o.squash || [1, 1];
+    if (n < 2) return faces;
+    const T = path.map((p, i) => norm(sub(path[Math.min(n - 1, i + 1)], path[Math.max(0, i - 1)])));
+    let u = norm(cross(Math.abs(T[0][2]) < 0.9 ? [0, 0, 1] : [1, 0, 0], T[0]));
+    const rings = path.map((p, i) => {
+      if (i) { u = sub(u, mul(T[i], dot(u, T[i]))); u = norm(u); }      // parallel transport, so the tube does not twist
+      const v = cross(T[i], u), rr = rf(i / (n - 1), i);
+      return Array.from({ length: seg }, (_, k) => { const a = k * TAU / seg, c = Math.cos(a) * rr * sq[0], s2 = Math.sin(a) * rr * sq[1]; return add(p, add(mul(u, c), mul(v, s2))); });
+    });
+    for (let i = 0; i + 1 < n; i++) for (let k = 0; k < seg; k++) {
+      const k1 = (k + 1) % seg, v = [rings[i][k], rings[i + 1][k], rings[i + 1][k1], rings[i][k1]];
+      const c = mul(add(add(v[0], v[1]), add(v[2], v[3])), 0.25), m = mul(add(path[i], path[i + 1]), 0.5);
+      let nn = norm(cross(sub(v[1], v[0]), sub(v[3], v[0]))); if (dot(nn, sub(c, m)) < 0) { nn = mul(nn, -1); v.reverse(); }
+      faces.push({ v, n: nn, hard: [false, false, false, false], hdir: o.hdir === 'along' ? T[i] : norm(sub(v[3], v[0])), c: o.color });
+    }
+    if (o.caps) [[0, -1], [n - 1, 1]].forEach(([i, sg]) => { if (rf(i / (n - 1), i) < 0.01) return; const v = rings[i].slice(); const nn = mul(T[i], sg); if (dot(cross(sub(v[1], v[0]), sub(v[2], v[0])), nn) < 0) v.reverse(); faces.push({ v, n: nn, all: true }); });
+    return faces;
+  }
+  /* sphere (or a squashed one with o.sz) as a lathe */
+  function sphere(cx, cy, cz, r, o = {}) { const k = o.rings ?? 12, sz = o.sz ?? 1; return revolve(cx, cy, Array.from({ length: k + 1 }, (_, i) => { const a = -Math.PI / 2 + Math.PI * i / k; return [Math.max(0.001, Math.cos(a) * r), cz + Math.sin(a) * r * sz]; }), Object.assign({ seg: o.seg ?? 24, crease: 9 }, o)); }
   /* project a point along light direction onto the plane z = gz */
   const onFloor = (p, Ld, gz = 0) => { const t = (p[2] - gz) / -Ld[2]; return [p[0] + Ld[0] * t, p[1] + Ld[1] * t, gz]; };
   g.Sketch.V3 = { add, sub, mul, dot, cross, norm };
-  g.Sketch.D3 = { camera, extrude, cylinder, ringSolid, gearMesh, bodyOfBar, circlePts, place, shift, render, poly3, onFloor, revolve, knurl, helix, polyline3, dashed3, label3 };
+  g.Sketch.D3 = { camera, extrude, cylinder, ringSolid, gearMesh, bodyOfBar, circlePts, place, shift, render, poly3, onFloor, revolve, knurl, helix, polyline3, dashed3, label3, tube, sphere };
 })(window);

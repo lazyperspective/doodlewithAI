@@ -8,6 +8,8 @@ description: Make a hand-drawn sketch or doodle with this repo's stroke-by-strok
 Read `AGENTS.md` in the repository root first: it has the API, the paper themes and the rules that make a drawing
 look hand-made. Then follow this loop and do not skip the looking.
 
+0. **If the user asks for the Tea Engine or Clock Island style**, or a weird, dense, shaded-all-over ink drawing,
+   read the *dense ink style* section of `AGENTS.md` and follow its recipe and its order of work.
 1. **Pick the closest plate** in the recipes table of `AGENTS.md` and read its scene file for the patterns it uses
    (the compact ones, `lighthouse.js`, `typewriter.js`, `octopolis.js`, are the quickest to learn from).
 2. **Start the drawing**: copy `scenes/_template.js` (or `scenes/_template-3d.js`, or `scenes/doodle-kit.js` for a

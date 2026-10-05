@@ -40,6 +40,26 @@ npm install
 npx playwright install chromium      # the agent renders with this to see its drawing
 ```
 
+## Ask for a style
+
+Name a plate and the agent works in that plate's style. The richest is the dense, slightly mad ink
+style of *Tea Engine* and *Clock Island*. Every surface is inked, there are big black shapes and white puffs, and
+one ridiculous idea fills the whole page:
+
+> Draw a giant snail carrying a whole Victorian town on its shell, in the Tea Engine style.
+
+> In the Tea Engine style: a lighthouse that has grown a factory on top, and all it makes is one paper boat.
+
+> A Clock Island style drawing of a library floating on a jellyfish, with the books leaking out of the bottom.
+
+For this style the agent follows the *dense ink style* recipe in `AGENTS.md`. It builds the masses in 3D, inks
+detail onto every face, piles up machinery and fills the page with small things around the main subject. The best
+prompts give it **one weird idea and one joke**. These drawings take longer, often 20 to 40 minutes.
+
+Other styles to ask for by name: *Lighthouse* (ink on kraft with white highlights), *Typewriter* or *Camera*
+(exploded technical drawing), *Cathedral* (sepia section with wash), *Library Tree* (white lines on cyanotype
+blue), *Bridge* (ballpoint), *Space Elevator* (graph-paper diary), *Ink Garden* (grown black-and-white doodle).
+
 ## Look at the drawings
 
 Open `index.html` in a browser (or `npm run serve`). It is a spiral sketchbook: flip through the plates and press

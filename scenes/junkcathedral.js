@@ -236,7 +236,7 @@
     }
     /* ================= FOREGROUND: tea crates, a cobbled path, a puddle that reflects the portal ================= */
     { const crate = (x, y, z, w, d, h, label) => { const B = box(x - w, y - d, z, x + w, y + d, z + h); add(B); const F = face(B, 0, -1, 0); if (F) F.deco = (PP) => { const pr = planeProj([x - w, y - d - 0.5, z], [1, 0, 0], [0, 0, 1]); lineUV(pr, 0, h * 0.5, 2 * w, h * 0.5, 0.6); lineUV(pr, 0, 0, 2 * w, h, 0.6); for (let u = 3; u < 2 * w; u += 5) lineUV(pr, u, 1, u, h - 1, 0.35); if (label) { const c = pr(w, h * 0.3); PP.text(label, c[0], c[1], { size: Math.max(7, w * 0.55), align: 'center', c: RED }); } }; };
-      [[-560, -210, 0, 26, 22, 30, 'TEA'], [-506, -214, 0, 22, 20, 26, 'TEA'], [-534, -208, 30, 22, 20, 24, 'Nº9'], [-590, -170, 0, 18, 16, 22, '']].forEach(a => crate(...a));
+      [[-560, -210, 0, 26, 22, 30, 'TEA'], [-506, -214, 0, 22, 20, 26, 'TEA'], [-534, -208, 30, 22, 20, 24, 'NO9'], [-590, -170, 0, 18, 16, 22, '']].forEach(a => crate(...a));
       custom([-620, -260, 30], (PP, cm) => { for (let q = 0; q < 5; q++) { const p = cm.project([-640 + q * 16, -250 - (q % 2) * 8, 12]); if (p) lump(p[0], p[1], 9 + (q % 3) * 2, { rows: 2 }); } }, 20);
     }
     /*__FG__*/
