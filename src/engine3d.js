@@ -59,7 +59,7 @@
   const shift = (faces, dx, dy, dz) => place(faces, { t: [dx, dy, dz] });
 
   /* ---------------- renderer ---------------- */
-  const ENH3 = () => (g.Sketch.ENH || {});
+  const ENH3 = () => (g.Sketch.ENH || {}), lerp = (a, b, t) => a + (b - a) * t;
   function render(P, faces, cam, o = {}) {
     // the render draws with its own random stream (so edits elsewhere do not reshuffle it, and it does not
     // reshuffle what comes after), and hatching on a shared grid so neighbouring faces' lines meet
@@ -75,6 +75,16 @@
       items.push({ f, pr, d, c });
     }
     items.sort((a, b) => (((a.f ? a.f.layer : a.layer) ?? 2) - ((b.f ? b.f.layer : b.layer) ?? 2)) || (b.d - a.d));
+    // engraving: smooth (Gouraud) tone across curved surfaces. Each vertex takes the average normal of the faces
+    // that meet at it and bend less than ~40 degrees from this face, so cylinders and spheres shade as one smooth
+    // gradient while box corners stay sharp.
+    const MODE0 = ENH3().style3d || o.style, ENGR = ['engraving', 'wood-engraving'].includes(MODE0) && P.engrave;
+    const vkey = v => v[0].toFixed(1) + ',' + v[1].toFixed(1) + ',' + v[2].toFixed(1), VN = new Map();
+    if (ENGR) for (const f of faces) { if (f.custom || !f.v) continue; for (const v of f.v) { const k = vkey(v); (VN.get(k) || VN.set(k, []).get(k)).push(f.n); } }
+    const smoothN = (f, v) => { const a = VN.get(vkey(v)); if (!a) return f.n; let s0 = [0, 0, 0]; for (const n of a) if (dot(n, f.n) > 0.75) s0 = add(s0, n); return norm(s0); };
+    // line weight by depth: near outlines heavier, far ones lighter
+    let dMin = 1e18, dMax = -1e18; for (const it of items) if (!it.custom) { dMin = Math.min(dMin, it.d); dMax = Math.max(dMax, it.d); }
+    const DW = o.depthWeight ?? ENH3().depthWeight ?? 0, depthK = d => DW ? lerp(1 + 0.45 * DW, 1 - 0.4 * DW, dMax > dMin ? (d - dMin) / (dMax - dMin) : 0.5) : 1;
     // silhouette: an edge between a face turned to the camera and one turned away is an outline, so ink it (smooth lathes, cylinders, spheres)
     let sil = null;
     if (o.silhouette) { sil = new Map(); const key = (a, b) => { const k1 = a.map(x => x.toFixed(2)).join(), k2 = b.map(x => x.toFixed(2)).join(); return k1 < k2 ? k1 + '|' + k2 : k2 + '|' + k1; };
@@ -101,13 +111,25 @@
       if (!f.ghost) {
         P.occlude(poly, paper);
         if (f.c) P.wash(poly, f.c, (f.ca ?? 0.55) * (1 - 0.35 * fk), { edge: 0, jit: 0.2, steps: 1 });
-        const lam = Math.max(0, dot(f.n, L)), tone = Math.min(1, amb + (1 - amb) * lam), dark = f.tone !== undefined ? f.tone : 1 - tone;
+        const lam = Math.max(0, dot(f.n, L)), tone = Math.min(1, amb + (1 - amb) * lam), dark = Math.min(f.maxTone ?? 1, f.tone !== undefined ? f.tone : 1 - tone);
         if (dark > (o.hatchMin ?? 0.1) && !f.noHatch) {
           const az = Math.atan2(f.n[1], f.n[0]); let ang = f.n[2] > 0.9 ? -48 : f.n[2] < -0.9 ? 60 : 62 + Math.sin(az) * 26;
           if (f.hdir && Math.abs(dot(f.hdir, f.n)) < 0.7) { const q0 = cam.project(it.c), q1 = cam.project(add(it.c, mul(f.hdir, 10))); if (q0 && q1) ang = Math.atan2(q1[1] - q0[1], q1[0] - q0[0]) * 180 / Math.PI; }
           let area2 = 0; for (let i = 0; i < poly.length; i++) { const p = poly[i], q = poly[(i + 1) % poly.length]; area2 += p[0] * q[1] - q[0] * p[1]; } area2 = Math.abs(area2) / 2;
-          const MODE = o.style || (typeof window !== 'undefined' && window.__SHADE) || 'layered';
-          if (o.rich && MODE !== 'layered') {
+          const MODE = ENH3().style3d || o.style || (typeof window !== 'undefined' && window.__SHADE) || 'layered';
+          if (ENGR && area2 > 1.5) {
+            // the engraver's line: one set of lines across the face whose width follows the smooth tone, crossed at a
+            // shallow angle in the darks. Walls run their lines up the height (so the lines carry on around a
+            // cylinder), tubes and lathes along their own hatch direction, tops at one fixed angle.
+            const kD = o.darken ?? 1.25, tv = f.v.map(v => { if (f.tone !== undefined) return f.tone; const n = smoothN(f, v), lm = Math.max(0, dot(n, L)); return Math.min(f.maxTone ?? 1, (1 - Math.min(1, amb + (1 - amb) * lm)) * kD); });
+            const pv = pr.map(q => [q[0], q[1]]), toneAt = (x, y) => { let sw = 0, st = 0; for (let i = 0; i < pv.length; i++) { const d2 = (pv[i][0] - x) ** 2 + (pv[i][1] - y) ** 2 + 0.5, w = 1 / (d2 * d2); sw += w; st += w * tv[i]; } const t = Math.max(0, (st / sw - 0.05) / 0.95); return Math.min(1, Math.pow(t, o.engraveGamma ?? 0.7) * 1.12) * fa; };
+            let ea = ang; const wall = Math.abs(f.n[2]) < 0.55;
+            if (f.hdir && Math.abs(dot(f.hdir, f.n)) < 0.7) ea = ang; else if (wall) { const q0 = cam.project(it.c), q1 = cam.project(add(it.c, [0, 0, 10])); if (q0 && q1) ea = Math.atan2(q1[1] - q0[1], q1[0] - q0[0]) * 180 / Math.PI; }
+            ea = Math.round(ea / 3) * 3;
+            const tmax = Math.max(...tv);
+            if (MODE0 === 'wood-engraving') P.woodEngrave(poly, toneAt, { ang: ea, gap: o.gap ?? 2.8, c: ink, paper });
+            else if (tmax > 0.04) { if (Math.min(...tv) > (o.solidFrom ?? 0.8)) P.wash(poly, ink || '#111111', 0.95 * fa, { edge: 0, jit: 0.1, steps: 1 }); else P.engrave(poly, toneAt, { ang: ea, gap: o.engraveGap ?? 2.7, c: ink, cross: o.crossAng ?? 32 }); }
+          } else if ((o.rich || ENH3().style3d) && MODE !== 'layered' && MODE !== 'engraving') {
             const d = Math.min(1, dark * (o.darken ?? 1.25)), g0 = o.gap ?? 4, A = fa;
             const inPoly = (x, y) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
             let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9; poly.forEach(([x, y]) => { bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y); });
@@ -139,8 +161,8 @@
         }
       }
       if (f.noEdge) { }
-      else if (f.all) { const p2 = poly.concat([poly[0]]); P.path(p2, { rough: o.rough ?? 0.4, w: (o.w ?? 1.25) * fw, c: ink, a: 0.97 * fa, passes: 1 }); }
-      else for (let i = 0; i < poly.length; i++) if ((f.hard && f.hard[i]) || (sil && sil.edge(f, i))) { const a = poly[i], b = poly[(i + 1) % poly.length]; P.line(a[0], a[1], b[0], b[1], { w: (o.w ?? 1.25) * fw, c: ink, a: 0.97 * fa, rough: o.rough ?? 0.35, over: 0.4, passes: 1 }); }
+      else if (f.all) { const p2 = poly.concat([poly[0]]); P.path(p2, { rough: o.rough ?? 0.4, w: (o.w ?? 1.25) * fw * depthK(it.d), c: ink, a: 0.97 * fa, passes: 1 }); }
+      else for (let i = 0; i < poly.length; i++) if ((f.hard && f.hard[i]) || (sil && sil.edge(f, i))) { const a = poly[i], b = poly[(i + 1) % poly.length]; P.line(a[0], a[1], b[0], b[1], { w: (o.w ?? 1.25) * fw * depthK(it.d), c: ink, a: 0.97 * fa, rough: o.rough ?? 0.35, over: 0.4, passes: 1 }); }
       if (f.deco) f.deco(P, cam, poly, f);
     }
     return items.length;
@@ -199,7 +221,7 @@
       let nn = norm(cross(sub(v[1], v[0]), sub(v[3], v[0]))); if (dot(nn, sub(c, m)) < 0) { nn = mul(nn, -1); v.reverse(); }
       faces.push({ v, n: nn, hard: [false, false, false, false], hdir: o.hdir === 'along' ? T[i] : norm(sub(v[3], v[0])), c: o.color });
     }
-    if (o.caps) [[0, -1], [n - 1, 1]].forEach(([i, sg]) => { if (rf(i / (n - 1), i) < 0.01) return; const v = rings[i].slice(); const nn = mul(T[i], sg); if (dot(cross(sub(v[1], v[0]), sub(v[2], v[0])), nn) < 0) v.reverse(); faces.push({ v, n: nn, all: true }); });
+    if (o.caps) [[0, -1], [n - 1, 1]].forEach(([i, sg]) => { if (rf(i / (n - 1), i) < 0.01) return; const v = rings[i].slice(); const nn = mul(T[i], sg); if (dot(cross(sub(v[1], v[0]), sub(v[2], v[0])), nn) < 0) v.reverse(); faces.push({ v, n: nn, all: true, maxTone: o.capTone ?? 0.6 }); });   // caps never print solid black
     return faces;
   }
   /* sphere (or a squashed one with o.sz) as a lathe */

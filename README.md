@@ -64,6 +64,33 @@ You can also name any plate and the agent works in its style: *Lighthouse* (ink 
 (exploded technical drawing), *Cathedral* (sepia section with wash), *Library Tree* (white lines on cyanotype
 blue), *Bridge* (ballpoint), *Space Elevator* (graph-paper diary), *Ink Garden* (grown black-and-white doodle).
 
+## What's new: engraving and printmaking
+
+![The Lunar Observatory](docs/images/observatory.jpg)
+
+*The Lunar Observatory* was drawn by a fresh agent with the new shading in `src/shading.js`:
+- a mezzotint sky;
+- a stippled moon;
+- the telescope and tower in 3D, engraved;
+- a wood-engraved sea and woodcut pines.
+
+Ask for it the same way as dense ink: **"in engraving style"**.
+
+**3D engraving.** Any 3D drawing can be shaded the way a copper engraver works: lines that swell in the shadows,
+thin to a hair in the light, and cross in a lozenge net in the darkest parts. The tone runs smoothly round curved
+surfaces, so a cylinder or a dome grades instead of showing flat bands. Add `style: 'engraving'` to `D.render`.
+
+![Engraving before and after](docs/images/before-after/engraving.jpg)
+
+**New shading for any shape.** Each takes a tone, a number or a gradient function, so one call models a whole form:
+
+![Shading techniques](docs/images/before-after/shading.jpg)
+
+`P.engrave` (swelling lines, or banknote-style waves), `P.tone` (hatching to a target darkness), `P.flowTone` (lines
+that crowd in the shadows), `P.stippleW` (evenly spaced stipple that follows the tone), `P.tsp` (the whole tone as
+one unbroken line, for plotters), `P.woodEngrave` (white lines cut into black), and for texture `P.woodcut`,
+`P.mezzotint`, `P.aquatint`, `P.scumble`, `P.drypoint` and `P.feather` (ink bleed).
+
 ## What's new: a better pen
 
 The engine has been sharpened so every drawing looks more hand-made, and it can do a few new things. The before and
@@ -130,13 +157,14 @@ node tools/gallery.mjs                         # every plate → docs/images/
 | `src/engine.js` | The 2D engine. Lines, curves, ellipses, hatching and cross-hatching, stipple and washes. Also a built-in single-stroke alphabet, notes with leader lines, dimension lines, cumulus clouds, cloud ropes, leaves, engraved strands and circuit traces. |
 | `src/engine3d.js` | A perspective camera with solids (extrusions, cylinders, gears, lathe shapes). Hidden faces are removed, and each face is shaded by pen hatching that follows the light, in a dozen styles (engraving, stipple, contour, spot black, wash and more). |
 | `src/doodle.js` | The doodle kit. 20 motifs and 12 pattern fills, growth by packing or by budding, tendrils, tentacles and spires, and the shading moves that make black-and-white ink read as volume. |
+| `src/shading.js` | Engraving and printmaking: swelling-line engraving, wood engraving, weighted stipple, tone-driven flow lines and hatching, one-line TSP drawings, woodcut, mezzotint, aquatint, drypoint and ink bleed. |
 | `src/kit.js` | A toolbox of noise, colour, Voronoi and jigsaw cells, Poisson packing, contour lines and watercolour with blooms and granulation. |
-| `scenes/` | 24 drawings to learn from, plus two starter templates. |
+| `scenes/` | 25 drawings to learn from, plus two starter templates. |
 
 The plates: *Spaceship · Burj Khalifa · Bridge · Space Elevator · Mechanical Robot · Pyramids · Library Tree ·
 Cathedral · Watch Movement (plan and 3D) · Nave · Camera (exploded) · Rotunda · Doodle · Automatic Doodle · Ink
 Garden · Tea Engine · Clock Island · The House That Draws Itself · Doodle Kit · Lighthouse · Octopolis ·
-Typewriter · The Whale Works*.
+Typewriter · The Whale Works · The Lunar Observatory*.
 
 ## Publishing the sketchbook
 

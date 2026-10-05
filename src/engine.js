@@ -240,7 +240,7 @@
         }
         // a dry pen: now and then a long stroke skips for a moment, leaving a hairline gap
         const hsh = Math.abs(Math.sin(x1 * 12.9898 + y1 * 78.233 + x2 * 37.719 + y2 * 4.581) * 43758.5453) % 1;
-        if (!p && ENH.dry && len > 140 && pts.length > 8 && hsh < ENH.dry) { const cut = Math.floor(pts.length * (0.3 + 0.4 * ((hsh * 7.31) % 1))), g2 = Math.max(1, Math.round(2.5 / Math.max(1, L / n)));
+        if (!p && ENH.dry && o.dry !== false && len > 140 && pts.length > 8 && hsh < ENH.dry) { const cut = Math.floor(pts.length * (0.3 + 0.4 * ((hsh * 7.31) % 1))), g2 = Math.max(1, Math.round(2.5 / Math.max(1, L / n)));
           this.push({ k: 's', p: pts.slice(0, cut + 1), c, a }); this.push({ k: 's', p: pts.slice(cut + g2), c, a }); continue; }
         this.push({ k: 's', p: pts, c, a: a * (p ? 0.55 : 1) });
       }

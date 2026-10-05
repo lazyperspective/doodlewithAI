@@ -185,6 +185,7 @@
         }
         case 'd': c.beginPath(); c.arc(op.x, op.y, op.r + 0.8, 0, 6.3); c.fill(); break;
         case 'D': for (const q of op.p) { c.beginPath(); c.arc(q[0], q[1], q[2] + 0.8, 0, 6.3); c.fill(); } break;
+        case 'e': c.save(); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.moveTo(op.poly[0][0], op.poly[0][1]); for (let n = 1; n < op.poly.length; n++) c.lineTo(op.poly[n][0], op.poly[n][1]); c.closePath(); c.fill(); c.restore(); break;
       }
     }
     /* ---- live animation ---- */

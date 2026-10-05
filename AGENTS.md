@@ -148,6 +148,32 @@ Tools: `node tools/render.mjs <name> --theme riso` (any drawing as a two-ink ris
 <name> [--plotter]`, `node tools/critique.mjs renders/<name>.png` (run it after each render: it reports empty
 quarters, too much mid-grey, missing blacks and the focal point).
 
+## Shading (`src/shading.js`): engraving and printmaking
+
+Every call takes a **tone**: a number from 0 (paper) to 1 (solid ink), or a function `(x, y) => 0..1`, so one call
+shades a whole gradient. `Sketch.ballTone(cx, cy, r, lx, ly)` is the tone of a ball lit from `(lx, ly)`; write your
+own for other forms (a cylinder: darker toward one side; a wall: darker toward the ground).
+
+| call | look |
+|---|---|
+| `P.engrave(poly, tone, { ang, gap, cross, crossFrom, wave })` | **copper engraving**: parallel lines that swell in the darks and break off in the lights; a second set crosses at `cross`° in the darks. `wave: [amp, wavelength]` for banknote lines. The best all-round shading |
+| `P.woodEngrave(poly, tone, { ang, gap })` | **wood engraving**: a black block with white lines cut in. Great for night water and dark skies |
+| `P.stippleW(poly, tone, n, { r, iters })` | evenly spaced stipple that follows the tone (weighted Voronoi). Returns the points. A moon, a face, smoke |
+| `P.flowTone(poly, tone, { field, gapMin, gapMax })` | lines along a field that crowd in the shadows and open in the light |
+| `P.tone(poly, tone, { ang, w })` | ordinary hatching, but you give the darkness and it picks spacing and cross-hatching |
+| `P.tsp(points, { w })` | joins `stippleW` points (`{ draw: false }`) into one unbroken line; only works dense and small |
+| `P.woodcut(poly, tone, { field, gap })`, `P.mezzotint`, `P.aquatint(…, { levels })`, `P.scumble`, `P.drypoint(points)`, `P.feather(poly)` | textures for parts of a picture: woodcut rocks and pines, a mezzotint night sky (best near black), aquatint flat steps, scribbled tone, a burred line, ink bleed round a black shape |
+
+**3D**: `D.render(P, faces, cam, { style: 'engraving' })` (or `'wood-engraving'`) shades every face with swelling
+lines whose width follows a smooth tone across curved surfaces. Options: `engraveGap` (2.7), `crossAng` (32),
+`engraveGamma` (0.7; lower is darker), `solidFrom` (0.8; faces darker than this print solid), `depthWeight` (0–1:
+nearer outlines heavier).
+
+**The engraving style**, when someone asks for it: `scenes/observatory.js` is the example. Use a black night or a
+dark ground for contrast, one bright focal shape (the moon), 3D in `style: 'engraving'`, the sea in `woodEngrave`,
+the sky in `mezzotint`, foreground masses in `woodcut`, and bold outlines. Put the picture in a frame with a
+lettered title and key, like a museum print.
+
 ## The doodle kit (`src/doodle.js`, `SketchDoodle.kit(P)`)
 
 The engine for grown, packed, black-and-white doodles (the *Automatic Doodle*, *Ink Garden* and *Doodle Kit* plates).
@@ -374,6 +400,7 @@ learn from.
 | cinematic 3D interior with light shafts and fog | `scenes/nave3d.js`, `scenes/rotunda3d.js` |
 | abstract 3D ink sculpture | `scenes/doodle3d.js` |
 | grown doodles | `scenes/automatic.js`, `scenes/inkgarden.js`, `scenes/doodle-kit.js` |
+| **engraving**: a night print with a 3D engraved centrepiece, stippled moon and wood-engraved sea | `scenes/observatory.js` |
 | **dense ink**: a weird story, 3D masses covered in hand-inked detail (see the section above) | `scenes/junkcathedral.js`, `scenes/clockisland.js` |
 | a whole illustrated world with animated parts | `scenes/house.js` |
 

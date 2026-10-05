@@ -172,6 +172,7 @@
         }
         case 'd': c.beginPath(); c.arc(op.x, op.y, op.r + 0.8, 0, 6.3); c.fill(); break;
         case 'D': for (const q of op.p) { c.beginPath(); c.arc(q[0], q[1], q[2] + 0.8, 0, 6.3); c.fill(); } break;
+        case 'e': c.save(); c.globalCompositeOperation = 'destination-out'; c.beginPath(); c.moveTo(op.poly[0][0], op.poly[0][1]); for (let n = 1; n < op.poly.length; n++) c.lineTo(op.poly[n][0], op.poly[n][1]); c.closePath(); c.fill(); c.restore(); break;
       }
     }
     /* ---- live animation ---- */
@@ -286,6 +287,7 @@
 
   /* ------------------------------------------------------------ the pages */
   const NOTES = {
+    'The Lunar Observatory': 'A print in every new shading: mezzotint sky, stippled moon, engraved 3D brass, wood-engraved sea, woodcut pines.',
     'Spaceship': 'Soft pencil, orthographic multi-view on cream, with red and green wiring and orbit insets.',
     'Burj Khalifa': 'A worm’s-eye view on kraft paper: black crosshatch, slate wash, white pen highlights.',
     'Bridge': 'Blue ballpoint, fog drawn as scalloped smoke ropes.',
