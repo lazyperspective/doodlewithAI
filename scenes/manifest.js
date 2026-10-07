@@ -26,5 +26,6 @@ window.SCENE_FILES = [
   'typewriter',
   'whaleworks',
   'observatory',
+  'bell-garden',
   // '_template', '_template-3d'   <- the starting points for new drawings (render them directly)
 ];

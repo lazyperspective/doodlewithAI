@@ -287,6 +287,7 @@
 
   /* ------------------------------------------------------------ the pages */
   const NOTES = {
+    'The Bell Garden': 'Dense ink on a floating garden: a bell tower, trees grown out of the lawn, roots hanging below. A sign warns: NO RUNNING, THE TREES ARE TICKING.',
     'The Lunar Observatory': 'A print in every new shading: mezzotint sky, stippled moon, engraved 3D brass, wood-engraved sea, woodcut pines.',
     'Spaceship': 'Soft pencil, orthographic multi-view on cream, with red and green wiring and orbit insets.',
     'Burj Khalifa': 'A worm’s-eye view on kraft paper: black crosshatch, slate wash, white pen highlights.',
